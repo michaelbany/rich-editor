@@ -7,5 +7,5 @@ Own notion-like rich text editor based Vue.
 
 - **Chaging block text-node styles**
     - Splitting block text-node
-    - Merging block text-node
+    - Merging block text-node with same styles
     - Applying text-node styles
