@@ -26,13 +26,21 @@ export function useEditor(rawContent: EditorContent = []) {
   }
 
   const selectedUnit = ref<{ id: string | undefined; text: string | null }[]>([]);
+  const cursorPosition = ref<{ id: string | undefined; offset: number | undefined }>({
+    id: undefined,
+    offset: undefined,
+  });
 
   const select = {
     clear: () => {
       selectedUnit.value = [];
     },
-    validate: (item: { id: string; text: string | null }) => {
-      if (!documentData.blocks.find((block) => block.id === item.id.split("/")[0])) {
+    validate: (item_id: string | undefined) => {
+      if (!item_id) {
+        return false;
+      }
+
+      if (!documentData.blocks.find((block) => block.id === item_id.split("/")[0])) {
         return false;
       }
 
@@ -43,21 +51,32 @@ export function useEditor(rawContent: EditorContent = []) {
 
       const testIdRegex = new RegExp(`^${firstId}/\\d+$`);
 
-      if (testIdRegex.test(item.id)) {
+      if (testIdRegex.test(item_id)) {
         return true;
       }
 
       // remove all ranges if validation fails
-      window.getSelection()?.removeAllRanges();
-      select.clear();
+    //   window.getSelection()?.removeAllRanges();
+    //   select.clear();
 
       return false;
     },
     capture: () => {
       const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0 || !selection.toString()) {
+      if (!selection || selection.rangeCount === 0) {
         select.clear();
         return; // No selection
+      }
+
+      if (!selection.toString()) {
+        if (select.validate(selection.anchorNode?.parentElement?.id)) {
+          cursorPosition.value = {
+            id: selection.anchorNode?.parentElement?.id,
+            offset: selection.anchorOffset,
+          };
+        } else {
+          cursorPosition.value = { id: undefined, offset: undefined };
+        }
       }
 
       const range = selection.getRangeAt(0);
@@ -89,65 +108,10 @@ export function useEditor(rawContent: EditorContent = []) {
 
       select.sync(nodesSelected);
     },
-    sync: (nodes: any[]) => {
-      selectedUnit.value = nodes.filter((node) => select.validate(node));
+    sync: (nodes: { id: string; text: string | null }[]) => {
+      selectedUnit.value = nodes.filter((node) => select.validate(node.id));
     },
   };
-
-  function splitAndToggle(
-    content: any[],
-    nodeIndex: number,
-    selectedText: string,
-    style: "bold" | "italic"
-  ) {
-    const node = content[nodeIndex];
-    const fullText = node.text;
-    if (!selectedText.trim()) {
-      // Pokud je výběr prázdný, vracíme beze změny
-      return content;
-    }
-
-    // Najdeme, kde v původním textu se `selectedText` vyskytuje
-    const startPos = fullText.indexOf(selectedText);
-    if (startPos < 0) {
-      // nenašlo substring -> nic neděláme
-      return content;
-    }
-
-    const endPos = startPos + selectedText.length;
-    const prefix = fullText.slice(0, startPos);
-    const middle = fullText.slice(startPos, endPos);
-    const suffix = fullText.slice(endPos);
-
-    // Node pro prefix (zachová původní styl)
-    const prefixNode = prefix
-      ? {
-          ...node,
-          text: prefix,
-        }
-      : null;
-
-    // Node pro vybraný střed (přepneme styl)
-    const middleNode = {
-      ...node,
-      text: middle,
-      [style]: !node[style],
-    };
-
-    // Node pro suffix
-    const suffixNode = suffix
-      ? {
-          ...node,
-          text: suffix,
-        }
-      : null;
-
-    // Sestavíme nové části
-    const newNodes = [prefixNode, middleNode, suffixNode].filter(Boolean);
-
-    // Nahradíme 1 node za X nových
-    return [...content.slice(0, nodeIndex), ...newNodes, ...content.slice(nodeIndex + 1)];
-  }
 
   function mergeSameStyleNodes(content: any[]) {
     const result = [];
@@ -209,8 +173,6 @@ export function useEditor(rawContent: EditorContent = []) {
       const originalNode = oldContent[nodeIndex];
       const selectedText = selectedItem.text ?? "";
 
-      console.log(someOfAffectedNodesHasTheStyle);
-
       // pokud je to přesně jeden block stačí nám pouze upravit styly.
       if (selectedText.trim() === originalNode.text.trim()) {
         oldContent[nodeIndex] = {
@@ -269,7 +231,6 @@ export function useEditor(rawContent: EditorContent = []) {
 
     oldContent = oldContent.flat();
 
-    // console.log(newContent);
     oldContent = mergeSameStyleNodes(oldContent);
 
     documentData.blocks[blockIndex] = {
@@ -287,6 +248,10 @@ export function useEditor(rawContent: EditorContent = []) {
     // #todo - opravit toggle, aby true vždy prvně přepsalo všechny false až potom naopak
   };
 
+  //   function updateBlock(event: KeyboardEvent) {
+
+  //   }
+
   return {
     get content(): EditorAnyBlock[] {
       return documentData.blocks;
@@ -295,6 +260,7 @@ export function useEditor(rawContent: EditorContent = []) {
     restyle,
     state: {
       selectedUnit,
+      cursorPosition,
     },
   };
 }

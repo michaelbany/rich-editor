@@ -18,18 +18,27 @@
 <template>
   <UiButton @click="editor.restyle('bold')">Bold</UiButton>
   <UiButton @click="editor.restyle('italic')">Italic</UiButton>
-  <div>
+  <div class="mb-12">
     <template v-for="block in editor.content">
-      <EditorBlock :block="block">
+      <EditorBlock :block="block" @input="() => console.log(editor.content)">
         <EditorTextNode v-for="(node, i) in block.content" :node="node" :id="block.id + '/' + i" />
       </EditorBlock>
     </template>
   </div>
 
+
+
+  Cursor position:
+  <pre>
+    {{ editor.state.cursorPosition }}
+  </pre>
+
+  Selected unit:
   <pre>
       {{ editor.state.selectedUnit }}
   </pre>
 
+  Editor content:
   <pre>
     {{ editor.content }}
   </pre>

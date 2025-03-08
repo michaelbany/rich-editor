@@ -48,7 +48,7 @@
   });
 </script>
 <template>
-  <component :is="component">
+  <component :is="component" contenteditable class="focus:outline-none" @input="$emit('input')">
     <slot />
   </component>
 </template>
