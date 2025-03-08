@@ -270,16 +270,18 @@ export function useEditor(rawContent: EditorContent = []) {
     oldContent = oldContent.flat();
 
     // console.log(newContent);
-    //   newContent = mergeSameStyleNodes(newContent);
+    oldContent = mergeSameStyleNodes(oldContent);
 
     documentData.blocks[blockIndex] = {
       ...block,
       content: oldContent,
     };
 
-    //   select.clear();
+    select.clear();
+    window.getSelection()?.removeAllRanges();
+
     // #done - opravené rozdělování a přepínání stylů
-    // #todo - check mergeing
+    // #done - check mergeing
     // #todo - obnovení selectu po změně
     // #todo - posunutí kurzoru za nový text
     // #todo - opravit toggle, aby true vždy prvně přepsalo všechny false až potom naopak
