@@ -29,4 +29,8 @@
   <pre>
       {{ editor.state.selectedUnit }}
   </pre>
+
+  <pre>
+    {{ editor.content }}
+  </pre>
 </template>
