@@ -184,64 +184,102 @@ export function useEditor(rawContent: EditorContent = []) {
     if (blockIndex < 0) return;
 
     const block = documentData.blocks[blockIndex];
-    let newContent = [...block.content]; // kopie obsahu
-    let affectedNodes: EditorTextNode[] = [];
+    let oldContent = [...block.content]; // kopie obsahu
+    let newContent: EditorTextNode[][] = [];
+
+    // when selected multiple and some already have the style we toggle all to true
+    let someOfAffectedNodesHasTheStyle =
+      selectedUnit.value.some((item) => {
+        const nodeIndex = Number(item.id?.split("/")[1] ?? -1);
+        return nodeIndex >= 0 && oldContent[nodeIndex]?.[style];
+      }) &&
+      !selectedUnit.value.every((item) => {
+        const nodeIndex = Number(item.id?.split("/")[1] ?? -1);
+        return nodeIndex >= 0 && oldContent[nodeIndex]?.[style];
+      });
 
     for (const selectedItem of selectedUnit.value) {
       // Zjistíme index v contentu
       const nodeIndex = Number(selectedItem.id?.split("/")[1] ?? -1);
-      if (nodeIndex < 0 || !newContent[nodeIndex]) {
+      if (nodeIndex < 0 || !oldContent[nodeIndex]) {
+        // zde je chyba! Jednotlivými blocky upravujeme newContent a potom na něm zakládáme podmínku. Tato podmínka by se měla zachovávat podle "puvodního konententu"
         continue; // neplatný index
       }
 
-      // affectedNodes.push(newContent[nodeIndex]);
-      affectedNodes[nodeIndex] = newContent[nodeIndex];
-
-      const originalNode = newContent[nodeIndex];
+      const originalNode = oldContent[nodeIndex];
       const selectedText = selectedItem.text ?? "";
-      // console.log(originalNode, selectedText);
 
-      // if (selectedText.trim() !== originalNode.text.trim()) {
-      //     // newContent = splitAndToggle(newContent, nodeIndex, selectedText, style);
-      // }
+      console.log(someOfAffectedNodesHasTheStyle);
 
-      // console.log(originalNode, selectedText);
+      // pokud je to přesně jeden block stačí nám pouze upravit styly.
+      if (selectedText.trim() === originalNode.text.trim()) {
+        oldContent[nodeIndex] = {
+          ...originalNode,
+          [style]: someOfAffectedNodesHasTheStyle ? true : !originalNode[style],
+        };
+      } else {
+        const fullText = originalNode.text;
 
-      // pokud se vybraný text shoduje s textem v nodu
-      //     if (selectedText.trim() === originalNode.text.trim()) {
-      //       // toggle stylu
-      //       newContent[nodeIndex] = {
-      //         ...originalNode,
-      //         [style]: !originalNode[style],
-      //       };
-      //     } else {
-      //       newContent = splitAndToggle(newContent, nodeIndex, selectedText, style);
-      //     }
+        // Pokud je výběr prázdný, vracíme beze změny
+        if (!selectedText.trim()) continue;
+
+        // Najdeme, kde v původním textu se `selectedText` vyskytuje
+        const startPos = fullText.indexOf(selectedText);
+        if (startPos < 0) continue; // nenašlo substring -> nic neděláme
+
+        const endPos = startPos + selectedText.length;
+
+        const [prefix, middle, suffix] = [
+          fullText.slice(0, startPos),
+          fullText.slice(startPos, endPos),
+          fullText.slice(endPos),
+        ];
+
+        // Převedení na nové nodes
+        const prefixNode = prefix
+          ? {
+              ...originalNode,
+              text: prefix,
+            }
+          : null;
+
+        const middleNode = {
+          ...originalNode,
+          text: middle,
+          [style]: someOfAffectedNodesHasTheStyle ? true : !originalNode[style],
+        };
+
+        const suffixNode = suffix
+          ? {
+              ...originalNode,
+              text: suffix,
+            }
+          : null;
+
+        const newNodes = [prefixNode, middleNode, suffixNode].filter(Boolean) as EditorTextNode[];
+
+        newContent[nodeIndex] = newNodes;
+      }
     }
 
-    const allHasTheStyle = affectedNodes.every((node) => node[style]);
-    const someHasTheStyle = affectedNodes.some((node) => node[style]);
-    const noneHasTheStyle = affectedNodes.every((node) => !node[style]);
+    newContent.forEach((newNodes, index) => {
+      /** @ts-ignore */
+      oldContent[index] = newNodes;
+    });
 
-    if (affectedNodes.some((node) => node[style])) {
-      // měl by se mergeovat do toho prvního.
-      console.log("some has the style");
-    }
+    oldContent = oldContent.flat();
 
-    if (affectedNodes.every((node) => node[style])) {
-      // oba mají stejný styl.
-      console.log("all has the style");
-    }
-
+    // console.log(newContent);
     //   newContent = mergeSameStyleNodes(newContent);
 
-    //   documentData.blocks[blockIndex] = {
-    //     ...block,
-    //     content: newContent,
-    //   };
+    documentData.blocks[blockIndex] = {
+      ...block,
+      content: oldContent,
+    };
 
     //   select.clear();
-
+    // #done - opravené rozdělování a přepínání stylů
+    // #todo - check mergeing
     // #todo - obnovení selectu po změně
     // #todo - posunutí kurzoru za nový text
     // #todo - opravit toggle, aby true vždy prvně přepsalo všechny false až potom naopak
