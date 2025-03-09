@@ -25,9 +25,7 @@ export function useEditor(rawContent: EditorContent = []) {
     }));
   }
 
-  /** @deprecated */
   const selectedUnit = ref<{ id: string | undefined; text: string | null }[]>([]);
-  /** Pozice kurzoru by měla uchovávat aktuální pozici kurzoru */
   const cursorPosition = ref<{
     id: string | undefined;
     offset: number | undefined;
@@ -38,7 +36,6 @@ export function useEditor(rawContent: EditorContent = []) {
     absoluteOffset: undefined,
   });
 
-  /** Mělo by být aktivní pouze pokud se aktivní selection */
   const selectionState = ref<{
     block: EditorAnyBlock["id"] | undefined;
     start: number | undefined;
@@ -77,7 +74,6 @@ export function useEditor(rawContent: EditorContent = []) {
 
       return false;
     },
-    /** Volá se vždy když se změní selection */
     capture: () => {
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) {
@@ -108,7 +104,6 @@ export function useEditor(rawContent: EditorContent = []) {
 
         selectionState.value.block = selection.anchorNode?.parentElement?.id.split("/")[0];
 
-        /** Zjištění směru selection 'forward' | 'backward' */
         const nodePositionIsOnSameNode = selection.anchorNode === selection.focusNode;
         const nodePositionSureBackwards = selection.focusNode
           ? selection.anchorNode?.compareDocumentPosition(selection.focusNode) ===
