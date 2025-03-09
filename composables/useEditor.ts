@@ -36,6 +36,18 @@ export function useEditor(rawContent: EditorContent = []) {
     absoluteOffset: undefined,
   });
 
+  const selectionState = ref<{
+    block: EditorAnyBlock["id"] | undefined;
+    start: number | undefined;
+    end: number | undefined;
+    nodes: { id: string | undefined; text: string | null }[];
+  }>({
+    block: undefined,
+    start: undefined,
+    end: undefined,
+    nodes: [],
+  });
+
   const select = {
     clear: () => {
       selectedUnit.value = [];
@@ -69,34 +81,68 @@ export function useEditor(rawContent: EditorContent = []) {
         return; // No selection
       }
 
-      if (!selection.toString()) {
-        if (select.validate(selection.anchorNode?.parentElement?.id)) {
-          const cursorOnNodeIndex = Number(
-            selection.anchorNode?.parentElement?.id.split("/")[1] ?? -1
-          );
-          const el = document.getElementById(
-            selection.anchorNode?.parentElement?.id.split("/")[0] ?? ""
-          );
+      if (select.validate(selection.anchorNode?.parentElement?.id)) {
+        // #fixme validation: Validace dělá to, že překliknutím na jiný blok se ztratí cursor position a state (musí zmizet pouze v případě, že se nejedná o editorBlock)
+        const cursorOnNodeIndex = Number(
+          selection.anchorNode?.parentElement?.id.split("/")[1] ?? -1
+        );
+        const el = document.getElementById(
+          selection.anchorNode?.parentElement?.id.split("/")[0] ?? ""
+        );
 
-          let absoluteOffset = 0;
+        let absoluteStartOffset = 0;
 
-          Array.from(el?.childNodes ?? [])
-            .filter((node: Node) => node.nodeType === 1)
-            .forEach((node, index) => {
-              if (index < cursorOnNodeIndex) {
-                absoluteOffset += node.textContent?.length ?? 0;
-              }
-            });
+        Array.from(el?.childNodes ?? [])
+          .filter((node: Node) => node.nodeType === 1)
+          .forEach((node, index) => {
+            if (index < cursorOnNodeIndex) {
+              absoluteStartOffset += node.textContent?.length ?? 0;
+            }
+          });
 
-          absoluteOffset += selection.anchorOffset;
+        absoluteStartOffset += selection.anchorOffset;
 
+        selectionState.value.block = selection.anchorNode?.parentElement?.id.split("/")[0];
+
+        const nodePositionIsOnSameNode = selection.anchorNode === selection.focusNode;
+        const nodePositionSureBackwards = selection.focusNode
+          ? selection.anchorNode?.compareDocumentPosition(selection.focusNode) ===
+            Node.DOCUMENT_POSITION_PRECEDING
+          : false;
+        const rangeLooksBackwards = selection.anchorOffset > selection.focusOffset;
+        const rangeSureBackwards = nodePositionIsOnSameNode
+          ? rangeLooksBackwards
+          : nodePositionSureBackwards;
+
+        // selectionState.value.focusOffset = !rangeSureBackwards
+        //   ? absoluteStartOffset + selection.toString().length
+        //   : absoluteStartOffset - selection.toString().length;
+
+        selectionState.value.end = !rangeSureBackwards
+          ? absoluteStartOffset + selection.toString().length
+          : absoluteStartOffset;
+
+        // selectionState.value.anchorOffset = absoluteStartOffset;
+        selectionState.value.start = !rangeSureBackwards
+          ? absoluteStartOffset
+          : absoluteStartOffset - selection.toString().length;
+
+        if (!selection.toString()) {
           cursorPosition.value = {
             id: selection.anchorNode?.parentElement?.id,
             offset: selection.anchorOffset,
-            absoluteOffset,
+            absoluteOffset: absoluteStartOffset,
           };
-        } else {
+        }
+      } else {
+        if (!selection.toString()) {
           cursorPosition.value = { id: undefined, offset: undefined, absoluteOffset: undefined };
+          selectionState.value = {
+            block: undefined,
+            start: undefined,
+            end: undefined,
+            nodes: [],
+          };
         }
       }
 
@@ -131,6 +177,7 @@ export function useEditor(rawContent: EditorContent = []) {
     },
     sync: (nodes: { id: string; text: string | null }[]) => {
       selectedUnit.value = nodes.filter((node) => select.validate(node.id));
+      selectionState.value.nodes = selectedUnit.value;
     },
   };
 
@@ -262,16 +309,75 @@ export function useEditor(rawContent: EditorContent = []) {
     select.clear();
     window.getSelection()?.removeAllRanges();
 
+    // Obnovení cursor position a selection z selectionState a cursorPosition
+    restoreSelection(
+      document.getElementById(selectionState.value.block ?? "") ?? document.body,
+      selectionState.value.start ?? 0,
+      selectionState.value.end ?? 0
+    );
+
     // #done - opravené rozdělování a přepínání stylů
     // #done - check mergeing
-    // #todo - obnovení selectu po změně
-    // #todo - posunutí kurzoru za nový text
-    // #todo - opravit toggle, aby true vždy prvně přepsalo všechny false až potom naopak
+    // #done - obnovení selectu po změně
+    // #done - posunutí kurzoru za nový text
+    // #done - opravit toggle, aby true vždy prvně přepsalo všechny false až potom naopak
   };
 
-  //   function updateBlock(event: KeyboardEvent) {
+  /**
+   * Vezme blockElement (DOM) a offsety start/end
+   * a pokusí se vytvořit DOM selekci přesně na daných offsetech.
+   */
+  async function restoreSelection(blockEl: HTMLElement, startOffset: number, endOffset: number) {
+    await nextTick(); // musíme počkat až má Vue hotový DOM
 
-  //   }
+    // 1) Najdeme všechny DOM elementy uvnitř bloku
+    const blockNodes: HTMLElement[] = [];
+    const walker = document.createTreeWalker(blockEl, NodeFilter.SHOW_ELEMENT);
+    let node;
+    while ((node = walker.nextNode())) {
+      blockNodes.push(node as HTMLElement);
+    }
+
+    // 2) Najít startNode + endNode + jejich posun v textNode
+    let currentOffset = 0; //
+
+    let startElement = null,
+      startNodeOffset = 0; // informace k start node (node, offset)
+    let endElement = null,
+      endNodeOffset = 0; // informace k end node (node, offset)
+
+    for (const node of blockNodes) {
+      const length = node.innerText.length;
+
+      // Ještě jsme nenašli start
+      if (!startElement && currentOffset + length > startOffset) {
+        startElement = node;
+        startNodeOffset = startOffset - currentOffset;
+      }
+
+      // A analogicky end
+      if (!endElement && currentOffset + length >= endOffset) {
+        endElement = node;
+        endNodeOffset = endOffset - currentOffset;
+        break; // end jsme našli, můžeme přestat
+      }
+
+      currentOffset += length;
+    }
+
+    // 3) Pokud máme start i end node, vytvoříme range
+    if (startElement && endElement) {
+      const selection = window.getSelection();
+      const range = document.createRange();
+
+      range.setStart(startElement.firstChild ?? startElement, startNodeOffset);
+      range.setEnd(endElement.firstChild ?? endElement, endNodeOffset);
+
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+    }
+  }
 
   return {
     get content(): EditorAnyBlock[] {
@@ -282,6 +388,7 @@ export function useEditor(rawContent: EditorContent = []) {
     state: {
       selectedUnit,
       cursorPosition,
+      selectionState,
     },
   };
 }

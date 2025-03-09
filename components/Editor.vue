@@ -33,12 +33,17 @@
     {{ editor.state.cursorPosition }}
   </pre>
 
+  Selected state:
+  <pre>
+    {{ editor.state.selectionState }}
+  </pre>
+
   Selected unit:
   <pre>
       {{ editor.state.selectedUnit }}
   </pre>
 
-  Editor content:
+  Editor content: {{ editor.content.length }} {{ editor.content.map((block) => block.content.length) }}
   <pre>
     {{ editor.content }}
   </pre>
