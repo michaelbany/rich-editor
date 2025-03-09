@@ -65,14 +65,21 @@ export type RuntimeNode = Omit<InlineNode, InlineStyle> & {
 };
 
 /**
+ * Union of all possible editor states.
+ */
+type EditorStateType = BlockState | ContentState;
+
+/**
  * Union of all possible block states.
  */
-export type BlockState = SelectionState | CursorState;
+type BlockState = SelectionState | CursorState;
+
+type ContentState = SelectedNodesState | FocusedBlockState;
 
 /**
  * Type of the editor state. Needs to be extended with the specific editor state type.
  */
-export type EditorState<T extends BlockState> = T | null;
+export type EditorState<T extends EditorStateType> = T | null;
 
 /**
  * State of the editor when a selection is active inside a block.
@@ -101,3 +108,23 @@ export type CursorState = {
   /** absolute offset in the block */
   absoluteOffset: number;
 };
+
+/**
+ * State of the editor when nodes are selected.
+ */
+export type SelectedNodesState = {
+    /** block id where the nodes are */
+    block: string;
+    /** nodes that are focused */
+    node: InlineNode[];
+    /** styles set that are applied to the nodes */
+    styles: Record<InlineStyle, boolean>;
+}
+
+/**
+ * State of the editor when a block is focused.
+ */
+export type FocusedBlockState = {
+    /** block id that is focused */
+    block: string;
+}
