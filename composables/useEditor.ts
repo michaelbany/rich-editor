@@ -26,9 +26,14 @@ export function useEditor(rawContent: EditorContent = []) {
   }
 
   const selectedUnit = ref<{ id: string | undefined; text: string | null }[]>([]);
-  const cursorPosition = ref<{ id: string | undefined; offset: number | undefined }>({
+  const cursorPosition = ref<{
+    id: string | undefined;
+    offset: number | undefined;
+    absoluteOffset: number | undefined;
+  }>({
     id: undefined,
     offset: undefined,
+    absoluteOffset: undefined,
   });
 
   const select = {
@@ -55,10 +60,6 @@ export function useEditor(rawContent: EditorContent = []) {
         return true;
       }
 
-      // remove all ranges if validation fails
-    //   window.getSelection()?.removeAllRanges();
-    //   select.clear();
-
       return false;
     },
     capture: () => {
@@ -70,12 +71,32 @@ export function useEditor(rawContent: EditorContent = []) {
 
       if (!selection.toString()) {
         if (select.validate(selection.anchorNode?.parentElement?.id)) {
+          const cursorOnNodeIndex = Number(
+            selection.anchorNode?.parentElement?.id.split("/")[1] ?? -1
+          );
+          const el = document.getElementById(
+            selection.anchorNode?.parentElement?.id.split("/")[0] ?? ""
+          );
+
+          let absoluteOffset = 0;
+
+          Array.from(el?.childNodes ?? [])
+            .filter((node: Node) => node.nodeType === 1)
+            .forEach((node, index) => {
+              if (index < cursorOnNodeIndex) {
+                absoluteOffset += node.textContent?.length ?? 0;
+              }
+            });
+
+          absoluteOffset += selection.anchorOffset;
+
           cursorPosition.value = {
             id: selection.anchorNode?.parentElement?.id,
             offset: selection.anchorOffset,
+            absoluteOffset,
           };
         } else {
-          cursorPosition.value = { id: undefined, offset: undefined };
+          cursorPosition.value = { id: undefined, offset: undefined, absoluteOffset: undefined };
         }
       }
 
