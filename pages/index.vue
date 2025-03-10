@@ -26,10 +26,10 @@
           italic: true,
         },
         {
-          text: " and",
+          text: " and ",
         },
         {
-          text: " bold",
+          text: "bold",
           bold: true,
         },
         {

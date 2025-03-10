@@ -3,8 +3,8 @@ import {
   type EditorContent,
   type EditorDocument,
   type EditorState,
-  type FocusedBlockState,
-  type SelectedNodesState,
+  type EditorStateHolder,
+  type EditorStateSchema,
   type SelectionState,
 } from "~/types/newTypes";
 
@@ -27,8 +27,26 @@ function useEditor(content: EditorContent) {
   }
 
   /** State holders */
-  const selectionState = ref<EditorState<SelectionState>>();
-  const cursorState = ref<EditorState<CursorState>>();
+  const selectionState = ref<EditorState<SelectionState>>(null);
+  const cursorState = ref<EditorState<CursorState>>(null);
+
+  const _states = reactive<EditorStateHolder>({
+    cursor: null,
+    selection: null,
+  });
+
+  const state: EditorStateSchema = {
+    cursor: {
+      get: () => _states.cursor,
+      set: (state) => (_states.cursor = state),
+      clear: () => (_states.cursor = null),
+    },
+    selection: {
+      get: () => _states.selection,
+      set: (state) => (_states.selection = state),
+      clear: () => (_states.selection = null),
+    },
+  };
 
   // #note: Compute on call instead of storing it in the state
   //   const selectedNodeState = ref<EditorState<SelectedNodesState>>();

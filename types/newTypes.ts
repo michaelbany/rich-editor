@@ -67,7 +67,9 @@ export type RuntimeNode = Omit<InlineNode, InlineStyle> & {
 /**
  * Union of all possible editor states.
  */
-type EditorStateType = BlockState | ContentState;
+export type AnyEditorState = BlockState | ContentState;
+
+export type EditorEventStateType = 'selection' | 'cursor';
 
 /**
  * Union of all possible block states.
@@ -76,15 +78,35 @@ type BlockState = SelectionState | CursorState;
 
 type ContentState = SelectedNodesState | FocusedBlockState;
 
+type EditorStateMap = {
+  selection: SelectionState;
+  cursor: CursorState;
+}
+
+export type EditorStateSchema = {
+  [key in EditorEventStateType]: {
+    get: () => EditorState<EditorStateMap[key]>;
+    set: (state: EditorState<EditorStateMap[key]>) => void;
+    clear: () => void;
+  }
+}
+
+export type EditorStateHolder = {
+  [key in EditorEventStateType]: EditorState<EditorStateMap[key]>;
+}
+
 /**
  * Type of the editor state. Needs to be extended with the specific editor state type.
  */
-export type EditorState<T extends EditorStateType> = T | null;
+export type EditorState<T extends AnyEditorState> = {
+  type: EditorEventStateType;
+} & T | null;
 
 /**
  * State of the editor when a selection is active inside a block.
  */
 export type SelectionState = {
+  type: 'selection';
   /** a block id where the selection is happening */
   block: string;
   /** selection start offset (absolute offset in the block) */
@@ -99,6 +121,7 @@ export type SelectionState = {
  * Information about the cursor position inside a block.
  */
 export type CursorState = {
+  type: "cursor";
   /** a block id where the cursor is */
   block: string;
   /** a node id where the cursor is */
@@ -113,6 +136,7 @@ export type CursorState = {
  * State of the editor when nodes are selected.
  */
 export type SelectedNodesState = {
+    type: "selectedNodes";
     /** block id where the nodes are */
     block: string;
     /** nodes that are focused */
