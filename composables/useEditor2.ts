@@ -53,10 +53,11 @@ export function useEditor2(content: EditorContent) {
 
     // Event ment the selection was cancelled so we sync that
     if (!windowSelection || windowSelection.rangeCount === 0) {
-      state.cursor.clear();
-      state.selection.clear();
       return;
     }
+
+    state.cursor.clear();
+    state.selection.clear();
 
     // If text selected it's a selection event otherwise it's a cursor event
     if (windowSelection.toString()) {
@@ -93,40 +94,42 @@ export function useEditor2(content: EditorContent) {
     trigger: (windowSelection: Selection) => {
       if (!selection.validate(windowSelection)) return;
 
-      const direction = selection.direction(windowSelection);
       const anchorNode = node.find(windowSelection.anchorNode?.parentElement?.id);
 
+      const { start, end } = selection.offsets(windowSelection, anchorNode);
+
+      state.selection.set({
+        type: "selection",
+        block: anchorNode?.block_id ?? "",
+        start: start,
+        end: end,
+        nodes: [],
+      });
+    },
+    offsets: (ws: Selection, node: NodeModel): { start: number; end: number } => {
       let selectionAbsoluteOffset = 0;
+      const direction = selection.direction(ws);
 
-      anchorNode
-        ?.block()
-        ?.nodes()
-        .forEach((node, index) => {
-          if (index < anchorNode.index) {
-            selectionAbsoluteOffset += node?.text?.length ?? 0;
-          }
-        });
+      node?.siblings()?.forEach((sibling, index) => {
+        if (index < node.index) {
+          selectionAbsoluteOffset += sibling?.text?.length ?? 0;
+        }
+      });
 
-      selectionAbsoluteOffset += windowSelection.anchorOffset;
+      selectionAbsoluteOffset += ws.anchorOffset;
 
       if (direction === "backward") {
-        state.selection.set({
-          type: "selection",
-          block: anchorNode?.block_id ?? "",
-          start: selectionAbsoluteOffset - windowSelection.toString().length,
+        return {
+          start: selectionAbsoluteOffset - ws.toString().length,
           end: selectionAbsoluteOffset,
-          nodes: [],
-        });
+        };
       } else if (direction === "forward") {
-        state.selection.set({
-          type: "selection",
-          block: anchorNode?.block_id ?? "",
+        return {
           start: selectionAbsoluteOffset,
-          end: selectionAbsoluteOffset + windowSelection.toString().length,
-          nodes: [],
-        });
+          end: selectionAbsoluteOffset + ws.toString().length,
+        };
       } else {
-        state.selection.clear();
+        return { start: 0, end: 0 };
       }
     },
     direction: (windowSelection: Selection): "forward" | "backward" => {
@@ -253,6 +256,9 @@ export function useEditor2(content: EditorContent) {
       },
       block() {
         return blockModel(id.split("/")[0]);
+      },
+      siblings() {
+        return this.block()?.nodes();
       },
     };
   }
