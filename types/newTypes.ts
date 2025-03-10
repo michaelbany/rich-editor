@@ -129,7 +129,7 @@ export type CursorState = {
   /** local offset inside the node */
   offset: number;
   /** absolute offset in the block */
-  absoluteOffset: number;
+  absolute: {start: number, end: number};
 };
 
 /**
