@@ -1,12 +1,9 @@
 import {
-  type CursorState,
   type EditorContent,
   type EditorDocument,
-  type EditorState,
   type EditorStateHolder,
   type EditorStateSchema,
   type NodeFragment,
-  type SelectionState,
 } from "~/types/newTypes";
 
 /** Inteprates skeleton of useEditor */
@@ -87,10 +84,6 @@ export function useEditor2(content: EditorContent) {
       clear: () => (_states.selection = null),
     },
   };
-
-  // #note: Compute on call instead of storing it in the state
-  //   const selectedNodeState = ref<EditorState<SelectedNodesState>>();
-  //   const focusedBlockState = ref<EditorState<FocusedBlockState>>();
 
   const selection = {
     trigger: (s: Selection) => {
@@ -291,6 +284,11 @@ export function useEditor2(content: EditorContent) {
     // merge: () => {},
   };
 
+  /**
+   * The function to create runtime NodeModel.
+   * @param id DOM id of the node
+   * @returns NodeModel
+   */
   function nodeModel(id?: string) {
     if (!id) return undefined;
 
@@ -319,9 +317,11 @@ export function useEditor2(content: EditorContent) {
     };
   }
 
-  type NodeModel = ReturnType<typeof nodeModel>;
-  type BlockModel = ReturnType<typeof blockModel>;
-
+  /**
+   * The function to create runtime BlockModel.
+   * @param id DOM id of the block
+   * @returns BlockModel
+   */
   function blockModel(id?: string) {
     if (!id) return undefined;
 
@@ -352,6 +352,9 @@ export function useEditor2(content: EditorContent) {
       },
     };
   }
+
+  type NodeModel = ReturnType<typeof nodeModel>;
+  type BlockModel = ReturnType<typeof blockModel>;
 
   return {
     capture,
