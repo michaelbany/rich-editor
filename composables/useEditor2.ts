@@ -61,10 +61,11 @@ export function useEditor2(content: EditorContent) {
     state.selection.clear();
 
     // If text selected it's a selection event otherwise it's a cursor event
-    if (s.toString()) {
-      selection.trigger(s);
+    if (!s.toString()) {
+      cursor.trigger(s);
     } else {
       cursor.trigger(s);
+      selection.trigger(s);
     }
   }
 
@@ -211,7 +212,31 @@ export function useEditor2(content: EditorContent) {
     trigger: (s: Selection) => {
       if (!cursor.validate(s)) return;
 
-      // console.log("Cursor triggered");
+      const anchorNode = node.find(s.anchorNode?.parentElement?.id);
+
+      state.cursor.set({
+        type: "cursor",
+        block: anchorNode?.block_id ?? "",
+        node: anchorNode?.id ?? "",
+        offset: s.anchorOffset,
+        absolute: cursor.offsets(s, anchorNode),
+      });
+    },
+    offsets: (s: Selection, node: NodeModel): { start: number; end: number } => {
+      let selectionAbsoluteOffset = 0;
+
+      node?.siblings()?.forEach((sibling, index) => {
+        if (index < node.index) {
+          selectionAbsoluteOffset += sibling?.text?.length ?? 0;
+        }
+      });
+
+      selectionAbsoluteOffset += s.anchorOffset;
+
+      return {
+        start: selectionAbsoluteOffset,
+        end: (node?.block()?.text().length ?? 0) - selectionAbsoluteOffset,
+      }
     },
     validate: (s: Selection): boolean => {
       const anchorNodeId = s.anchorNode?.parentElement?.id;
