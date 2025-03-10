@@ -1,4 +1,5 @@
 import {
+  type Block,
   type EditorContent,
   type EditorDocument,
   type EditorStateHolder,
@@ -290,26 +291,139 @@ export function useEditor2(content: EditorContent) {
       if (!state.selection.get()) return;
 
       const selectedBlock = _Block.find(state.selection.get()?.block);
+      if (!selectedBlock) return;
       const nodesOfSelectedBlock = selectedBlock?.nodes();
 
-      const selectedNodes = _Node.collect(state.selection.get()?.nodes.map((node) => node.id) ?? []);
+      const selectedNodes = _Node.collect(
+        state.selection.get()?.nodes.map((node) => node.id) ?? []
+      );
 
       const someNodeHasPickedStyle = selectedNodes.some((node) => node?.style.includes(style));
       const everyNodeHasPickedStyle = selectedNodes.every((node) => node?.style.includes(style));
 
       let newNodes: InlineNode[][] = [];
 
-      for (const nodeFragment of selectedNodes) {
-        const index = nodeFragment
+      for (const selectedNode of state.selection.get()?.nodes as NodeFragment[]) {
+        const originalNode = _Node.find(selectedNode.id);
+
+        if (!originalNode) continue;
+
+        const index = originalNode?.index as number;
+        const selectedText = selectedNode.text;
+
+        if (selectedText?.trim() === originalNode?.text?.trim()) {
+          // Whole node selected
+          // originalNode.style = [style]; // something like this
+          originalNode.setStyle(style, true);
+          newNodes[index] = [originalNode.original()];
+        } else {
+          // Partial node selected
+          if (!selectedText.trim()) continue; // pokud je vyběr prázdný, vracíme beze změny
+
+          const [prefix, middle, suffix] = _Node.split(originalNode, selectedText);
+
+          middle.setStyle(style, true); // #todo - set styling right depending on other siblings
+
+          // console.log("Splitting node", { prefix, middle, suffix });
+
+          newNodes[index] = [prefix, middle, suffix]
+            .filter((node) => node !== undefined)
+            .map((node) => node.original());
+        }
+
+        // console.log("New nodes", newNodes);
       }
+
+      let newBlockNodes = _Node.insert(newNodes, selectedBlock);
+
+      newBlockNodes = _Node.merge(newBlockNodes);
+
+      console.log("New block nodes", newBlockNodes);
+
+      // UPDATE DOCUMENT
+      // documentData.blocks[selectedBlock.index] = {
+      //   ...selectedBlock.original(),
+      //   nodes: newBlockNodes,
+      // }
+      // // OR
+      // documentData.blocks[selectedBlock.index].nodes = newBlockNodes;
+
+      _Selection.restore(); // restore selection
 
       // console.log("Applying style", style);
     },
     /** Split node to 3 parts */
-    // split: (node: NodeModel): Record<"prefix" | "middle" | "suffix", NodeModel> => {},
-    // merge: () => {},
+    split: (
+      node: NonNullable<NodeModel>,
+      selectedText: string
+    ): [NodeModel, NonNullable<NodeModel>, NodeModel] => {
+      const originalText = node?.text ?? "";
+
+      const startCut = originalText?.indexOf(selectedText);
+      const endCut = startCut + selectedText.length;
+
+      const [prefixText, middleText, suffixText] = [
+        originalText.slice(0, startCut),
+        originalText.slice(startCut, endCut),
+        originalText.slice(endCut),
+      ];
+
+      const prefixNode = prefixText ? _Node.clone(node, { text: prefixText }) : undefined;
+      const middleNode = _Node.clone(node, { text: middleText });
+      const suffixNode = suffixText ? _Node.clone(node, { text: suffixText }) : undefined;
+
+      return [prefixNode, middleNode, suffixNode];
+    },
+    clone: (base: NonNullable<NodeModel>, attr: { text?: string }): NonNullable<NodeModel> => {
+      return {
+        ...base,
+        text: attr.text ?? base.text,
+        style: [...base.style],
+        setStyle: base.setStyle,
+        original: base.original,
+        element: base.element,
+        parent: base.parent,
+        block: base.block,
+        siblings: base.siblings,
+      };
+    },
+    insert: (nodes: InlineNode[][], block: NonNullable<BlockModel>): InlineNode[] => {
+      let blockNodes = block.nodes().map((node) => node?.original());
+
+      nodes.forEach((node, index) => {
+        /** @ts-ignore */
+        blockNodes[index] = node;
+      });
+
+      blockNodes = blockNodes.flat();
+
+      return blockNodes as InlineNode[];
+    },
+    merge: (nodes: InlineNode[]) => {
+      const result: InlineNode[] = [];
+
+      for (const node of nodes) {
+        if (!result.length) {
+          result.push(node);
+        } else {
+          const prev: InlineNode = result[result.length - 1];
+          // #note: It's necessary to add here more conditions when adding more styles
+          const sameStyle = prev.bold === node.bold && prev.italic === node.italic;
+
+          if (sameStyle) {
+            // Merge nodes
+            result[result.length - 1] = {
+              ...prev,
+              text: prev.text + node.text,
+            };
+          } else {
+            result.push(node);
+          }
+        }
+      }
+      return result;
+    },
     // remove: () => {},
-    // insert: () => {},
   };
 
   /**
@@ -322,31 +436,47 @@ export function useEditor2(content: EditorContent) {
 
     const self = documentData.blocks.find((block) => id?.includes(block.id))?.nodes?.[
       Number(id?.split("/")[1]) ?? "-1"
-    ];
+    ] as InlineNode;
 
     return {
       id: id,
-      text: self?.text,
-      block_id: id?.split("/")[0],
-      index: Number(id?.split("/")[1]) ?? -1,
-      get style() {
-        return Object.keys(self ?? {}).filter((key) => key !== "text") as InlineStyle[];
+      text: self.text,
+      block_id: id.split("/")[0],
+      index: Number(id.split("/")[1]) ?? -1,
+      style: Object.keys(self).filter((key) => key !== "text") as InlineStyle[],
+      setStyle(style: InlineStyle, value?: boolean) {
+        // #test!! should work also as a toggle (probably works)
+        if (value) {
+          if (!this.style.includes(style)) {
+            this.style.push(style);
+          }
+        } else {
+          this.style = this.style.filter((s) => s !== style);
+        }
       },
-      set style(styles: InlineStyle[]) {
-        // set styles
+      /** @returns InlineNode */
+      original(): InlineNode {
+        return {
+          text: this.text,
+          ...this.style.reduce((acc: Partial<Record<InlineStyle, boolean>>, style: InlineStyle) => {
+            acc[style] = true;
+            return acc;
+          }, {}),
+        };
       },
-      original() {
-        return self;
-      },
+      /** @returns DOM element */
       element() {
         return document.getElementById(id);
       },
+      /** @returns DOM element */
       parent() {
         return document.getElementById(id.split("/")[0]);
       },
+      /** @returns BlockModel */
       block() {
         return blockModel(id.split("/")[0]);
       },
+      /** @returns NodeModel[] */
       siblings() {
         return this.block()?.nodes();
       },
@@ -361,27 +491,32 @@ export function useEditor2(content: EditorContent) {
   function blockModel(id?: string) {
     if (!id) return undefined;
 
-    const self = documentData.blocks.find((block) => block.id === id);
+    const self = documentData.blocks.find((block) => block.id === id) as Block;
 
     return {
       id: id,
-      type: self?.type,
+      type: self.type,
       index: documentData.blocks.findIndex((block) => block.id === id),
+      /** @returns Block */
       original() {
         return self;
       },
+      /** @returns DOM element */
       element() {
         return document.getElementById(id);
       },
+      /** @returns DOM element[] */
       children() {
         // #!!!: Has to wait to nextTick!!!
         return Array.from(this.element()?.children ?? []).filter(
           (child) => child.nodeType === Node.ELEMENT_NODE
         );
       },
+      /** @returns NodeModel[] */
       nodes() {
-        return Array.from(self?.nodes ?? []).map((node, index) => nodeModel(`${id}/${index}`));
+        return Array.from(self.nodes).map((node, index) => nodeModel(`${id}/${index}`));
       },
+      /** @returns full text of the block */
       text(): string {
         return (
           this.nodes()
