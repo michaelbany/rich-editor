@@ -260,7 +260,8 @@ export function useEditor2(content: EditorContent) {
   // };
 
   /**
-   * Block observer to interact with the blocks.
+   * Block observer to manipulate with the block models.
+   * Every method should except BlockModel|BlockModel[] as a parameter.
    */
   const block = {
     find: (id?: string): BlockModel => blockModel(id),
@@ -272,7 +273,8 @@ export function useEditor2(content: EditorContent) {
   };
 
   /**
-   * Node observer to interact with the nodes.
+   * Node observer to manipulate with the node models.
+   * Every method should except NodeModel|NodeModel[] as a parameter.
    */
   const node = {
     find: (id?: string): NodeModel => nodeModel(id),
