@@ -5,6 +5,7 @@ import {
   type EditorState,
   type EditorStateHolder,
   type EditorStateSchema,
+  type NodeFragment,
   type SelectionState,
 } from "~/types/newTypes";
 
@@ -49,10 +50,10 @@ export function useEditor2(content: EditorContent) {
    * @returns void
    */
   function handleSelectionChange() {
-    const windowSelection = window.getSelection();
+    const s = window.getSelection();
 
     // Event ment the selection was cancelled so we sync that
-    if (!windowSelection || windowSelection.rangeCount === 0) {
+    if (!s || s.rangeCount === 0) {
       return;
     }
 
@@ -60,10 +61,10 @@ export function useEditor2(content: EditorContent) {
     state.selection.clear();
 
     // If text selected it's a selection event otherwise it's a cursor event
-    if (windowSelection.toString()) {
-      selection.trigger(windowSelection);
+    if (s.toString()) {
+      selection.trigger(s);
     } else {
-      cursor.trigger(windowSelection);
+      cursor.trigger(s);
     }
   }
 
@@ -91,24 +92,53 @@ export function useEditor2(content: EditorContent) {
   //   const focusedBlockState = ref<EditorState<FocusedBlockState>>();
 
   const selection = {
-    trigger: (windowSelection: Selection) => {
-      if (!selection.validate(windowSelection)) return;
+    trigger: (s: Selection) => {
+      if (!selection.validate(s)) return;
 
-      const anchorNode = node.find(windowSelection.anchorNode?.parentElement?.id);
+      const anchorNode = node.find(s.anchorNode?.parentElement?.id);
 
-      const { start, end } = selection.offsets(windowSelection, anchorNode);
+      const { start, end } = selection.offsets(s, anchorNode);
 
       state.selection.set({
         type: "selection",
         block: anchorNode?.block_id ?? "",
         start: start,
         end: end,
-        nodes: [],
+        nodes: [...selection.nodes(s)],
       });
     },
-    offsets: (ws: Selection, node: NodeModel): { start: number; end: number } => {
+    nodes: (s: Selection): NodeFragment[] => {
+      const range = s.getRangeAt(0);
+      const nodes: NodeFragment[] = [];
+
+      if (s.anchorNode !== s.focusNode) {
+        const fragment = range.cloneContents();
+        const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_TEXT);
+
+        let node;
+        while ((node = walker.nextNode())) {
+          const parentElement = node.parentElement;
+          if (parentElement) {
+            nodes.push({
+              id: parentElement.id,
+              text: parentElement.textContent ?? "",
+            });
+          }
+        }
+      } else {
+        if (s.anchorNode?.parentElement) {
+          nodes.push({
+            id: s.anchorNode?.parentElement.id,
+            text: s.toString(),
+          });
+        }
+      }
+
+      return nodes;
+    },
+    offsets: (s: Selection, node: NodeModel): { start: number; end: number } => {
       let selectionAbsoluteOffset = 0;
-      const direction = selection.direction(ws);
+      const direction = selection.direction(s);
 
       node?.siblings()?.forEach((sibling, index) => {
         if (index < node.index) {
@@ -116,29 +146,28 @@ export function useEditor2(content: EditorContent) {
         }
       });
 
-      selectionAbsoluteOffset += ws.anchorOffset;
+      selectionAbsoluteOffset += s.anchorOffset;
 
       if (direction === "backward") {
         return {
-          start: selectionAbsoluteOffset - ws.toString().length,
+          start: selectionAbsoluteOffset - s.toString().length,
           end: selectionAbsoluteOffset,
         };
       } else if (direction === "forward") {
         return {
           start: selectionAbsoluteOffset,
-          end: selectionAbsoluteOffset + ws.toString().length,
+          end: selectionAbsoluteOffset + s.toString().length,
         };
       } else {
         return { start: 0, end: 0 };
       }
     },
-    direction: (windowSelection: Selection): "forward" | "backward" => {
-      const onSameNode = windowSelection.anchorNode === windowSelection.focusNode;
-      const onPrecedingNode = windowSelection.focusNode
-        ? windowSelection.anchorNode?.compareDocumentPosition(windowSelection.focusNode) ===
-          Node.DOCUMENT_POSITION_PRECEDING
+    direction: (s: Selection): "forward" | "backward" => {
+      const onSameNode = s.anchorNode === s.focusNode;
+      const onPrecedingNode = s.focusNode
+        ? s.anchorNode?.compareDocumentPosition(s.focusNode) === Node.DOCUMENT_POSITION_PRECEDING
         : false;
-      const rangeBackwards = windowSelection.anchorOffset > windowSelection.focusOffset;
+      const rangeBackwards = s.anchorOffset > s.focusOffset;
 
       return onSameNode
         ? rangeBackwards
@@ -148,9 +177,9 @@ export function useEditor2(content: EditorContent) {
           ? "backward"
           : "forward";
     },
-    validate: (windowSelection: Selection): boolean => {
-      const anchorNodeId = windowSelection.anchorNode?.parentElement?.id;
-      const focusNodeId = windowSelection.focusNode?.parentElement?.id;
+    validate: (s: Selection): boolean => {
+      const anchorNodeId = s.anchorNode?.parentElement?.id;
+      const focusNodeId = s.focusNode?.parentElement?.id;
 
       /** Is the selection valid */
       if (!anchorNodeId || !focusNodeId) {
@@ -179,14 +208,14 @@ export function useEditor2(content: EditorContent) {
   };
 
   const cursor = {
-    trigger: (windowSelection: Selection) => {
-      if (!cursor.validate(windowSelection)) return;
+    trigger: (s: Selection) => {
+      if (!cursor.validate(s)) return;
 
       // console.log("Cursor triggered");
     },
-    validate: (windowSelection: Selection): boolean => {
-      const anchorNodeId = windowSelection.anchorNode?.parentElement?.id;
-      const focusNodeId = windowSelection.focusNode?.parentElement?.id;
+    validate: (s: Selection): boolean => {
+      const anchorNodeId = s.anchorNode?.parentElement?.id;
+      const focusNodeId = s.focusNode?.parentElement?.id;
 
       /** Is the selection valid */
       if (!anchorNodeId || !focusNodeId) {
@@ -217,6 +246,7 @@ export function useEditor2(content: EditorContent) {
    */
   const block = {
     find: (id?: string): BlockModel => blockModel(id),
+    collect: (ids: string[]): BlockModel[] => ids.map((id) => blockModel(id)),
     // convert: () => {},
     // move: () => {},
     // remove: () => {},
@@ -228,6 +258,7 @@ export function useEditor2(content: EditorContent) {
    */
   const node = {
     find: (id?: string): NodeModel => nodeModel(id),
+    collect: (ids: string[]): NodeModel[] => ids.map((id) => nodeModel(id)),
     // style: () => {},
     // remove: () => {},
     // insert: () => {},

@@ -59,7 +59,7 @@ export type InlineStyle = "bold" | "italic" | "code" | "link";
  * Runtime node is used to identify a specific text node when editor is manipulating
  * it (e.g. selection), hence it has an `id`.
  */
-export type RuntimeNode = Omit<InlineNode, InlineStyle> & {
+export type NodeFragment = Omit<InlineNode, InlineStyle> & {
   /** node DOM id */
   id: string;
 };
@@ -114,7 +114,7 @@ export type SelectionState = {
   /** selection end offset (absolute offset in the block) */
   end: number;
   /** nodes that are part of the selection */
-  nodes: RuntimeNode[];
+  nodes: NodeFragment[];
 };
 
 /**
