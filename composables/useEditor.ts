@@ -186,6 +186,9 @@ export function useEditor(rawContent: EditorContent = []) {
     },
   };
 
+  /** bug: [style]: false se bere jako undefined tedy v porovnání se nemá vnímat.
+   * Nyní je to špatně, když má první [style]: undefined a druhý [style]: false -> nemergne se.
+   */
   function mergeSameStyleNodes(content: any[]) {
     const result = [];
     for (const item of content) {
