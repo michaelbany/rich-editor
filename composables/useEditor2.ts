@@ -94,15 +94,39 @@ export function useEditor2(content: EditorContent) {
       if (!selection.validate(windowSelection)) return;
 
       const direction = selection.direction(windowSelection);
-      let selectionAbsoluteOffset = 0;
       const anchorNode = node.find(windowSelection.anchorNode?.parentElement?.id);
 
-      console.log(anchorNode?.element());
+      let selectionAbsoluteOffset = 0;
+
+      anchorNode
+        ?.block()
+        ?.nodes()
+        .forEach((node, index) => {
+          if (index < anchorNode.index) {
+            selectionAbsoluteOffset += node?.text?.length ?? 0;
+          }
+        });
+
+      selectionAbsoluteOffset += windowSelection.anchorOffset;
 
       if (direction === "backward") {
-      }
-
-      if (direction === "forward") {
+        state.selection.set({
+          type: "selection",
+          block: anchorNode?.block_id ?? "",
+          start: selectionAbsoluteOffset - windowSelection.toString().length,
+          end: selectionAbsoluteOffset,
+          nodes: [],
+        });
+      } else if (direction === "forward") {
+        state.selection.set({
+          type: "selection",
+          block: anchorNode?.block_id ?? "",
+          start: selectionAbsoluteOffset,
+          end: selectionAbsoluteOffset + windowSelection.toString().length,
+          nodes: [],
+        });
+      } else {
+        state.selection.clear();
       }
     },
     direction: (windowSelection: Selection): "forward" | "backward" => {
@@ -155,7 +179,7 @@ export function useEditor2(content: EditorContent) {
     trigger: (windowSelection: Selection) => {
       if (!cursor.validate(windowSelection)) return;
 
-      console.log("Cursor triggered");
+      // console.log("Cursor triggered");
     },
     validate: (windowSelection: Selection): boolean => {
       const anchorNodeId = windowSelection.anchorNode?.parentElement?.id;
@@ -197,9 +221,9 @@ export function useEditor2(content: EditorContent) {
   };
 
   /**
-   * Node observer to interact with the nodes. 
-  */
- const node = {
+   * Node observer to interact with the nodes.
+   */
+  const node = {
     find: (id?: string): NodeModel => nodeModel(id),
     // style: () => {},
     // remove: () => {},
@@ -219,7 +243,7 @@ export function useEditor2(content: EditorContent) {
       id: id,
       text: self?.text,
       block_id: id?.split("/")[0],
-      self_index: Number(id?.split("/")[1]),
+      index: Number(id?.split("/")[1]) ?? -1,
       style: Object.keys(self ?? {}).filter((key) => key !== "text"),
       element() {
         return document.getElementById(id);
@@ -244,15 +268,25 @@ export function useEditor2(content: EditorContent) {
     return {
       id: id,
       type: self?.type,
+      index: documentData.blocks.findIndex((block) => block.id === id),
       element() {
         return document.getElementById(id);
       },
-      children() { // #!!!: Has to wait to nextTick!!!
-        return Array.from(this.element()?.children ?? []).filter((child) => child.nodeType === Node.ELEMENT_NODE);
+      children() {
+        // #!!!: Has to wait to nextTick!!!
+        return Array.from(this.element()?.children ?? []).filter(
+          (child) => child.nodeType === Node.ELEMENT_NODE
+        );
       },
       nodes() {
-        const count = this.children()?.length ?? 0;
-        return Array.from({ length: count }, (_, index) => nodeModel(`${id}/${index}`));
+        return Array.from(self?.nodes ?? []).map((node, index) => nodeModel(`${id}/${index}`));
+      },
+      text(): string {
+        return (
+          this.nodes()
+            .map((node) => node?.text)
+            .join("") ?? ""
+        );
       },
     };
   }
