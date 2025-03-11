@@ -8,37 +8,37 @@
   const editor = useEditor(props.content);
 
   onMounted(() => {
-    document.addEventListener("selectionchange", editor.select.capture);
+    editor.capture();
   });
 
   onUnmounted(() => {
-    document.removeEventListener("selectionchange", editor.select.capture);
+    editor.destroy();
   });
 </script>
 <template>
-  <UiButton @click="editor.restyle('bold')">Bold</UiButton>
-  <UiButton @click="editor.restyle('italic')">Italic</UiButton>
+  <div class="mb-8 space-x-2">
+    <UiButton size="icon" @click="editor.node.style('bold')"><Icon name="lucide:bold" /></UiButton>
+    <UiButton size="icon" @click="editor.node.style('italic')"><Icon name="lucide:italic" /></UiButton>
+  </div>
   <div class="mb-12">
-    <template v-for="block in editor.content">
-      <EditorBlock :block="block" @input="() => console.log(editor.content)">
-        <EditorTextNode v-for="(node, i) in block.content" :node="node" :id="block.id + '/' + i" />
+    <template v-for="block in editor.data.blocks">
+      <EditorBlock :block="block" @input="() => console.log(editor.data.blocks)">
+        <EditorTextNode v-for="(node, i) in block.nodes" :node="node" :id="block.id + '/' + i" />
       </EditorBlock>
     </template>
   </div>
 
-
-
   Cursor position:
   <pre>
-    {{ editor.state.cursorPosition }}
+    {{ editor.state.cursor.get() }}
   </pre>
 
   Selected state:
   <pre>
-    {{ editor.state.selectionState }}
+    {{ editor.state.selection.get() }}
   </pre>
 
-  Selected unit:
+  <!-- Selected unit:
   <pre>
       {{ editor.state.selectedUnit }}
   </pre>
@@ -46,5 +46,5 @@
   Editor content: {{ editor.content.length }} {{ editor.content.map((block) => block.content.length) }}
   <pre>
     {{ editor.content }}
-  </pre>
+  </pre> -->
 </template>

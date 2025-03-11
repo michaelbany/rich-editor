@@ -8,7 +8,7 @@
   const content: EditorContent = [
     {
       type: "heading",
-      content: [
+      nodes: [
         {
           text: "Heading 1",
         },
@@ -17,7 +17,7 @@
     },
     {
       type: "paragraph",
-      content: [
+      nodes: [
         {
           text: "This is a paragraph with ",
         },

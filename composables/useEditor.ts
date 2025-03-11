@@ -1,402 +1,594 @@
-import type {
-  EditorAnyBlock,
-  EditorBlockSchema,
-  EditorBlockType,
-  EditorContent,
-  EditorDocumentData,
-  EditorHeadingBlock,
-  EditorParagraphBlock,
-  EditorTextNode,
+import {
+  type Block,
+  type EditorContent,
+  type EditorDocument,
+  type EditorStateHolder,
+  type EditorStateSchema,
+  type InlineNode,
+  type InlineStyle,
+  type NodeFragment,
 } from "~/types";
 
-export function useEditor(rawContent: EditorContent = []) {
-  const documentData = reactive<EditorDocumentData>({
+/** Inteprates skeleton of useEditor */
+export function useEditor(content: EditorContent) {
+  const documentData = reactive<EditorDocument>({
     blocks: [],
   });
 
-  documentData.blocks = _initBlocks();
+  _initialize(); // Initialize the editor
 
-  function _initBlocks(): EditorAnyBlock[] {
-    return rawContent.map((block, index) => ({
-      id: crypto.randomUUID(),
-      type: block.type,
-      content: block.content,
-      props: block.props,
-    }));
+  function _initialize() {
+    // Generate unique IDs for each block
+    documentData.blocks = content.map((block) => {
+      return {
+        ...block,
+        id: crypto.randomUUID(),
+      };
+    });
   }
 
-  /** @deprecated */
-  const selectedUnit = ref<{ id: string | undefined; text: string | null }[]>([]);
-  /** Pozice kurzoru by měla uchovávat aktuální pozici kurzoru */
-  const cursorPosition = ref<{
-    id: string | undefined;
-    offset: number | undefined;
-    absoluteOffset: number | undefined;
-  }>({
-    id: undefined,
-    offset: undefined,
-    absoluteOffset: undefined,
+  /**
+   * The main function to capture user interactions
+   * and update the editor state and data.
+   *
+   * This function is called when the editor is mounted.
+   */
+  function capture() {
+    document.addEventListener("selectionchange", handleSelectionChange);
+  }
+  /**
+   * The function to destroy the editor.
+   *
+   * This function is called when the editor is unmounted.
+   */
+  function destroy() {
+    document.removeEventListener("selectionchange", handleSelectionChange);
+  }
+
+  /**
+   * Handles the selection change event.
+   * @returns void
+   */
+  function handleSelectionChange() {
+    const s = window.getSelection();
+
+    // Event ment the selection was cancelled so we sync that
+    if (!s || s.rangeCount === 0) {
+      return;
+    }
+
+    state.cursor.clear();
+    state.selection.clear();
+
+    // If text selected it's a selection event otherwise it's a cursor event
+    if (!s.toString()) {
+      _Cursor.trigger(s);
+    } else {
+      _Cursor.trigger(s);
+      _Selection.trigger(s);
+    }
+  }
+
+  /** State holders */
+  const _states = reactive<EditorStateHolder>({
+    cursor: null,
+    selection: null,
   });
 
-  /** Mělo by být aktivní pouze pokud se aktivní selection */
-  const selectionState = ref<{
-    block: EditorAnyBlock["id"] | undefined;
-    start: number | undefined;
-    end: number | undefined;
-    nodes: { id: string | undefined; text: string | null }[];
-  }>({
-    block: undefined,
-    start: undefined,
-    end: undefined,
-    nodes: [],
-  });
-
-  const select = {
-    clear: () => {
-      selectedUnit.value = [];
+  const state: EditorStateSchema = {
+    cursor: {
+      get: () => _states.cursor,
+      set: (state) => (_states.cursor = state),
+      clear: () => (_states.cursor = null),
     },
-    validate: (item_id: string | undefined) => {
-      if (!item_id) {
-        return false;
-      }
-
-      if (!documentData.blocks.find((block) => block.id === item_id.split("/")[0])) {
-        return false;
-      }
-
-      const [firstId, index] = selectedUnit.value[0]?.id?.split("/") || [null, null];
-      if (!firstId) {
-        return true;
-      }
-
-      const testIdRegex = new RegExp(`^${firstId}/\\d+$`);
-
-      if (testIdRegex.test(item_id)) {
-        return true;
-      }
-
-      return false;
+    selection: {
+      get: () => _states.selection,
+      set: (state) => (_states.selection = state),
+      clear: () => (_states.selection = null),
     },
-    /** Volá se vždy když se změní selection */
-    capture: () => {
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) {
-        select.clear();
-        return; // No selection
-      }
+  };
 
-      if (select.validate(selection.anchorNode?.parentElement?.id)) {
-        // #fixme validation: Validace dělá to, že překliknutím na jiný blok se ztratí cursor position a state (musí zmizet pouze v případě, že se nejedná o editorBlock)
-        const cursorOnNodeIndex = Number(
-          selection.anchorNode?.parentElement?.id.split("/")[1] ?? -1
-        );
-        const el = document.getElementById(
-          selection.anchorNode?.parentElement?.id.split("/")[0] ?? ""
-        );
+  const _Selection = {
+    trigger: (s: Selection) => {
+      if (!_Selection.validate(s)) return;
 
-        let absoluteStartOffset = 0;
+      const anchorNode = _Node.find(s.anchorNode?.parentElement?.id);
+      if (!anchorNode) return;
 
-        Array.from(el?.childNodes ?? [])
-          .filter((node: Node) => node.nodeType === 1)
-          .forEach((node, index) => {
-            if (index < cursorOnNodeIndex) {
-              absoluteStartOffset += node.textContent?.length ?? 0;
-            }
-          });
+      const { start, end } = _Selection.offsets(s, anchorNode);
 
-        absoluteStartOffset += selection.anchorOffset;
+      state.selection.set({
+        type: "selection",
+        block: anchorNode.block_id,
+        start: start,
+        end: end,
+        nodes: [..._Selection.nodes(s)],
+      });
+    },
+    nodes: (s: Selection): NodeFragment[] => {
+      const range = s.getRangeAt(0);
+      const nodes: NodeFragment[] = [];
 
-        selectionState.value.block = selection.anchorNode?.parentElement?.id.split("/")[0];
-
-        /** Zjištění směru selection 'forward' | 'backward' */
-        const nodePositionIsOnSameNode = selection.anchorNode === selection.focusNode;
-        const nodePositionSureBackwards = selection.focusNode
-          ? selection.anchorNode?.compareDocumentPosition(selection.focusNode) ===
-            Node.DOCUMENT_POSITION_PRECEDING
-          : false;
-        const rangeLooksBackwards = selection.anchorOffset > selection.focusOffset;
-        const rangeSureBackwards = nodePositionIsOnSameNode
-          ? rangeLooksBackwards
-          : nodePositionSureBackwards;
-
-        // selectionState.value.focusOffset = !rangeSureBackwards
-        //   ? absoluteStartOffset + selection.toString().length
-        //   : absoluteStartOffset - selection.toString().length;
-
-        selectionState.value.end = !rangeSureBackwards
-          ? absoluteStartOffset + selection.toString().length
-          : absoluteStartOffset;
-
-        // selectionState.value.anchorOffset = absoluteStartOffset;
-        selectionState.value.start = !rangeSureBackwards
-          ? absoluteStartOffset
-          : absoluteStartOffset - selection.toString().length;
-
-        if (!selection.toString()) {
-          cursorPosition.value = {
-            id: selection.anchorNode?.parentElement?.id,
-            offset: selection.anchorOffset,
-            absoluteOffset: absoluteStartOffset,
-          };
-        }
-      } else {
-        if (!selection.toString()) {
-          cursorPosition.value = { id: undefined, offset: undefined, absoluteOffset: undefined };
-          selectionState.value = {
-            block: undefined,
-            start: undefined,
-            end: undefined,
-            nodes: [],
-          };
-        }
-      }
-
-      const range = selection.getRangeAt(0);
-      const nodesSelected: { id: string; text: string | null }[] = [];
-
-      // -- Selecting Nodes
-      if (selection.anchorNode !== selection.focusNode) {
+      if (s.anchorNode !== s.focusNode) {
         const fragment = range.cloneContents();
-        const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_TEXT, null);
+        const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_TEXT);
 
         let node;
         while ((node = walker.nextNode())) {
           const parentElement = node.parentElement;
           if (parentElement) {
-            nodesSelected.push({
+            nodes.push({
               id: parentElement.id,
-              text: node.textContent,
+              text: parentElement.textContent ?? "",
             });
           }
         }
       } else {
-        if (selection.anchorNode?.parentElement) {
-          nodesSelected.push({
-            id: selection.anchorNode.parentElement.id,
-            text: selection.toString(),
+        if (s.anchorNode?.parentElement) {
+          nodes.push({
+            id: s.anchorNode?.parentElement.id,
+            text: s.toString(),
           });
         }
       }
 
-      select.sync(nodesSelected);
+      return nodes;
     },
-    sync: (nodes: { id: string; text: string | null }[]) => {
-      selectedUnit.value = nodes.filter((node) => select.validate(node.id));
-      selectionState.value.nodes = selectedUnit.value;
+    offsets: (s: Selection, node: NonNullable<NodeModel>): { start: number; end: number } => {
+      let selectionAbsoluteOffset = 0;
+      const direction = _Selection.direction(s);
+
+      node.siblings()?.forEach((sibling, index) => {
+        if (index < node.index) {
+          selectionAbsoluteOffset += sibling?.text?.length ?? 0;
+        }
+      });
+
+      selectionAbsoluteOffset += s.anchorOffset;
+
+      if (direction === "backward") {
+        return {
+          start: selectionAbsoluteOffset - s.toString().length,
+          end: selectionAbsoluteOffset,
+        };
+      } else if (direction === "forward") {
+        return {
+          start: selectionAbsoluteOffset,
+          end: selectionAbsoluteOffset + s.toString().length,
+        };
+      } else {
+        return { start: 0, end: 0 };
+      }
+    },
+    direction: (s: Selection): "forward" | "backward" => {
+      const onSameNode = s.anchorNode === s.focusNode;
+      const onPrecedingNode = s.focusNode
+        ? s.anchorNode?.compareDocumentPosition(s.focusNode) === Node.DOCUMENT_POSITION_PRECEDING
+        : false;
+      const rangeBackwards = s.anchorOffset > s.focusOffset;
+
+      return onSameNode
+        ? rangeBackwards
+          ? "backward"
+          : "forward"
+        : onPrecedingNode
+          ? "backward"
+          : "forward";
+    },
+    restore: async () => {
+      const selection = state.selection.get();
+      if (!selection) return;
+
+      await nextTick();
+
+      const block = _Block.find(selection.block);
+      if (!block) return;
+
+      const { startNode, endNode, endOffset, startOffset } = _Block.childrenInRange(
+        block,
+        selection.start,
+        selection.end
+      );
+
+      const startChild = startNode?.element()?.firstChild;
+      const endChild = endNode?.element()?.firstChild;
+
+      // 3) Vytvořit Range
+      if (startChild && endChild) {
+        const s = window.getSelection();
+        const r = document.createRange();
+
+        r.setStart(startChild, startOffset);
+        r.setEnd(endChild, endOffset);
+
+        s?.removeAllRanges();
+        s?.addRange(r);
+      }
+    },
+    validate: (s: Selection): boolean => {
+      const anchorNodeId = s.anchorNode?.parentElement?.id;
+      const focusNodeId = s.focusNode?.parentElement?.id;
+
+      /** Is the selection valid */
+      if (!anchorNodeId || !focusNodeId) {
+        // console.warn("Selection not defined");
+        return false;
+      }
+
+      /** Does the selected nodes know by editor */
+      if (
+        !documentData.blocks.some(
+          (block) => anchorNodeId.includes(block.id) && focusNodeId.includes(block.id)
+        )
+      ) {
+        console.warn("Selection is not in the editor");
+        return false;
+      }
+
+      /** Does focus & anchor part of the same block */
+      if (!new RegExp(`^${anchorNodeId.split("/")[0]}/\\d+$`).test(focusNodeId)) {
+        console.warn("Selection is not in the same block");
+        return false;
+      }
+
+      return true;
     },
   };
 
-  /** bug: [style]: false se bere jako undefined tedy v porovnání se nemá vnímat.
-   * Nyní je to špatně, když má první [style]: undefined a druhý [style]: false -> nemergne se.
-   */
-  function mergeSameStyleNodes(content: any[]) {
-    const result = [];
-    for (const item of content) {
-      if (!result.length) {
-        result.push(item);
-      } else {
-        const prev: EditorTextNode = result[result.length - 1];
-        // Porovnáme styly (bold, italic, popř. code/link atd.)
-        const sameStyle = prev.bold === item.bold && prev.italic === item.italic;
-        // + další vlastnosti, pokud je máš
+  const _Cursor = {
+    trigger: (s: Selection) => {
+      if (!_Cursor.validate(s)) return;
 
-        if (sameStyle) {
-          // Sloučíme text do posledního
-          result[result.length - 1] = {
-            ...prev,
-            text: prev.text + item.text,
-          };
-        } else {
-          result.push(item);
+      const anchorNode = _Node.find(s.anchorNode?.parentElement?.id);
+      if (!anchorNode) return;
+
+      state.cursor.set({
+        type: "cursor",
+        block: anchorNode.block_id,
+        node: anchorNode.id,
+        offset: s.anchorOffset,
+        absolute: _Cursor.offsets(s, anchorNode),
+      });
+    },
+    offsets: (s: Selection, node: NonNullable<NodeModel>): { start: number; end: number } => {
+      let selectionAbsoluteOffset = 0;
+
+      node?.siblings()?.forEach((sibling, index) => {
+        if (index < node.index) {
+          selectionAbsoluteOffset += sibling?.text?.length ?? 0;
         }
-      }
-    }
-    return result;
-  }
-
-  const restyle = (style: "bold" | "italic") => {
-    if (selectedUnit.value.length === 0) return;
-
-    const [blockId] = selectedUnit.value[0].id?.split("/") || [null];
-    if (!blockId) return;
-
-    const blockIndex = documentData.blocks.findIndex((b) => b.id === blockId);
-    if (blockIndex < 0) return;
-
-    const block = documentData.blocks[blockIndex];
-    let oldContent = [...block.content]; // kopie obsahu
-    let newContent: EditorTextNode[][] = [];
-
-    // when selected multiple and some already have the style we toggle all to true
-    let someOfAffectedNodesHasTheStyle =
-      selectedUnit.value.some((item) => {
-        const nodeIndex = Number(item.id?.split("/")[1] ?? -1);
-        return nodeIndex >= 0 && oldContent[nodeIndex]?.[style];
-      }) &&
-      !selectedUnit.value.every((item) => {
-        const nodeIndex = Number(item.id?.split("/")[1] ?? -1);
-        return nodeIndex >= 0 && oldContent[nodeIndex]?.[style];
       });
 
-    for (const selectedItem of selectedUnit.value) {
-      // Zjistíme index v contentu
-      const nodeIndex = Number(selectedItem.id?.split("/")[1] ?? -1);
-      if (nodeIndex < 0 || !oldContent[nodeIndex]) {
-        // zde je chyba! Jednotlivými blocky upravujeme newContent a potom na něm zakládáme podmínku. Tato podmínka by se měla zachovávat podle "puvodního konententu"
-        continue; // neplatný index
+      selectionAbsoluteOffset += s.anchorOffset;
+
+      return {
+        start: selectionAbsoluteOffset,
+        end: (node?.block()?.text().length ?? 0) - selectionAbsoluteOffset,
+      };
+    },
+    validate: (s: Selection): boolean => {
+      const anchorNodeId = s.anchorNode?.parentElement?.id;
+      const focusNodeId = s.focusNode?.parentElement?.id;
+
+      /** Is the selection valid */
+      if (!anchorNodeId || !focusNodeId) {
+        // console.warn("Cursor not defined");
+        return false;
       }
 
-      const originalNode = oldContent[nodeIndex];
-      const selectedText = selectedItem.text ?? "";
-
-      // pokud je to přesně jeden block stačí nám pouze upravit styly.
-      if (selectedText.trim() === originalNode.text.trim()) {
-        oldContent[nodeIndex] = {
-          ...originalNode,
-          [style]: someOfAffectedNodesHasTheStyle ? true : !originalNode[style],
-        };
-      } else {
-        const fullText = originalNode.text;
-
-        // Pokud je výběr prázdný, vracíme beze změny
-        if (!selectedText.trim()) continue;
-
-        // Najdeme, kde v původním textu se `selectedText` vyskytuje
-        const startPos = fullText.indexOf(selectedText);
-        if (startPos < 0) continue; // nenašlo substring -> nic neděláme
-
-        const endPos = startPos + selectedText.length;
-
-        const [prefix, middle, suffix] = [
-          fullText.slice(0, startPos),
-          fullText.slice(startPos, endPos),
-          fullText.slice(endPos),
-        ];
-
-        // Převedení na nové nodes
-        const prefixNode = prefix
-          ? {
-              ...originalNode,
-              text: prefix,
-            }
-          : null;
-
-        const middleNode = {
-          ...originalNode,
-          text: middle,
-          [style]: someOfAffectedNodesHasTheStyle ? true : !originalNode[style],
-        };
-
-        const suffixNode = suffix
-          ? {
-              ...originalNode,
-              text: suffix,
-            }
-          : null;
-
-        const newNodes = [prefixNode, middleNode, suffixNode].filter(Boolean) as EditorTextNode[];
-
-        newContent[nodeIndex] = newNodes;
+      /** Does the selected nodes know by editor */
+      if (
+        !documentData.blocks.some(
+          (block) => anchorNodeId.includes(block.id) && focusNodeId.includes(block.id)
+        )
+      ) {
+        console.warn("Cursor is not in the editor");
+        return false;
       }
-    }
 
-    newContent.forEach((newNodes, index) => {
-      /** @ts-ignore */
-      oldContent[index] = newNodes;
-    });
+      return true;
+    },
+  };
 
-    oldContent = oldContent.flat();
+  // const input = {
+  //   trigger: () => {},
+  // };
 
-    oldContent = mergeSameStyleNodes(oldContent);
+  /**
+   * Block observer to manipulate with the block models.
+   * Every method should except BlockModel|BlockModel[] as a parameter.
+   */
+  const _Block = {
+    find: (id?: string): BlockModel => blockModel(id),
+    collect: (ids: string[]): BlockModel[] => ids.map((id) => blockModel(id)),
+    childrenInRange: (block: NonNullable<BlockModel>, start: number, end: number) => {
+      const nodes = block.nodes();
+      let currentOffset = 0;
 
-    documentData.blocks[blockIndex] = {
-      ...block,
-      content: oldContent,
-    };
+      let startNode = null,
+        endNode = null;
+      let startOffset = 0,
+        endOffset = 0;
 
-    select.clear();
-    window.getSelection()?.removeAllRanges();
+      for (const node of nodes) {
+        const length = node.text.length;
 
-    // Obnovení cursor position a selection z selectionState a cursorPosition
-    restoreSelection(
-      document.getElementById(selectionState.value.block ?? "") ?? document.body,
-      selectionState.value.start ?? 0,
-      selectionState.value.end ?? 0
-    );
+        if (!startNode && currentOffset + length > start) {
+          startNode = node;
+          startOffset = start - currentOffset;
+        }
 
-    // #done - opravené rozdělování a přepínání stylů
-    // #done - check mergeing
-    // #done - obnovení selectu po změně
-    // #done - posunutí kurzoru za nový text
-    // #done - opravit toggle, aby true vždy prvně přepsalo všechny false až potom naopak
+        if (!endNode && currentOffset + length >= end) {
+          endNode = node;
+          endOffset = end - currentOffset;
+          break;
+        }
+
+        currentOffset += length;
+      }
+
+      return { startNode, startOffset, endNode, endOffset };
+    },
+    // convert: () => {},
+    // move: () => {},
+    // remove: () => {},
+    // insert: () => {},
   };
 
   /**
-   * Vezme blockElement (DOM) a offsety start/end
-   * a pokusí se vytvořit DOM selekci přesně na daných offsetech.
+   * Node observer to manipulate with the node models.
+   * Every method should except NodeModel|NodeModel[] as a parameter.
    */
-  async function restoreSelection(blockEl: HTMLElement, startOffset: number, endOffset: number) {
-    await nextTick(); // musíme počkat až má Vue hotový DOM
+  const _Node = {
+    /** Find NodeModel by id */
+    find: (id?: string): NodeModel => nodeModel(id),
 
-    // 1) Najdeme všechny DOM elementy uvnitř bloku
-    const blockNodes: HTMLElement[] = [];
-    const walker = document.createTreeWalker(blockEl, NodeFilter.SHOW_ELEMENT);
-    let node;
-    while ((node = walker.nextNode())) {
-      blockNodes.push(node as HTMLElement);
-    }
+    /** Collect multiple NodeModels by ids[] */
+    collect: (ids: string[]): NonNullable<NodeModel>[] =>
+      ids.map((id) => nodeModel(id)).filter((node) => node !== undefined),
 
-    // 2) Najít startNode + endNode + jejich posun v textNode
-    let currentOffset = 0; //
+    /** Style selected NodeFragments */
+    style: (style: InlineStyle) => {
+      const selection = state.selection.get();
+      if (!selection) return;
 
-    let startElement = null,
-      startNodeOffset = 0; // informace k start node (node, offset)
-    let endElement = null,
-      endNodeOffset = 0; // informace k end node (node, offset)
+      const selectedBlock = _Block.find(selection.block);
+      if (!selectedBlock) return;
 
-    for (const node of blockNodes) {
-      const length = node.innerText.length;
+      const forceShareStyle = _Node.cascadeStyle(selection.nodes, style);
 
-      // Ještě jsme nenašli start
-      if (!startElement && currentOffset + length > startOffset) {
-        startElement = node;
-        startNodeOffset = startOffset - currentOffset;
+      let newNodes: InlineNode[][] = [];
+
+      for (const node of selection.nodes) {
+        const originalNode = _Node.find(node.id);
+        if (!originalNode) continue;
+
+        const index = originalNode.index;
+        const selectedText = node.text;
+
+        if (selectedText.trim() === originalNode.text.trim()) {
+          // Whole node selected
+          originalNode.setStyle(style, forceShareStyle);
+          newNodes[index] = [originalNode.original()];
+        } else {
+          // Partial node selected
+          if (!selectedText.trim()) continue; // pokud je vyběr prázdný, vracíme beze změny
+
+          const [prefix, middle, suffix] = _Node.split(originalNode, selectedText);
+
+          middle.setStyle(style, forceShareStyle);
+
+          newNodes[index] = [prefix, middle, suffix]
+            .filter((node) => node !== undefined)
+            .map((node) => node.original());
+        }
       }
 
-      // A analogicky end
-      if (!endElement && currentOffset + length >= endOffset) {
-        endElement = node;
-        endNodeOffset = endOffset - currentOffset;
-        break; // end jsme našli, můžeme přestat
+      let newBlockNodes = _Node.insert(newNodes, selectedBlock);
+      newBlockNodes = _Node.merge(newBlockNodes);
+
+      // Update Document
+      documentData.blocks[selectedBlock.index].nodes = newBlockNodes;
+
+      _Selection.restore();
+    },
+    /** Split node to 3 parts */
+    split: (
+      node: NonNullable<NodeModel>,
+      selectedText: string
+    ): [NodeModel, NonNullable<NodeModel>, NodeModel] => {
+      const originalText = node.text;
+
+      const startCut = originalText.indexOf(selectedText);
+      const endCut = startCut + selectedText.length;
+
+      const [prefixText, middleText, suffixText] = [
+        originalText.slice(0, startCut),
+        originalText.slice(startCut, endCut),
+        originalText.slice(endCut),
+      ];
+
+      const prefixNode = prefixText ? _Node.clone(node, { text: prefixText }) : undefined;
+      const middleNode = _Node.clone(node, { text: middleText });
+      const suffixNode = suffixText ? _Node.clone(node, { text: suffixText }) : undefined;
+
+      return [prefixNode, middleNode, suffixNode];
+    },
+    clone: (base: NonNullable<NodeModel>, attr: { text?: string }): NonNullable<NodeModel> => {
+      return {
+        ...base,
+        text: attr.text ?? base.text,
+        style: [...base.style],
+        setStyle: base.setStyle,
+        original: base.original,
+        element: base.element,
+        parent: base.parent,
+        block: base.block,
+        siblings: base.siblings,
+      };
+    },
+    insert: (nodes: InlineNode[][], block: NonNullable<BlockModel>): InlineNode[] => {
+      let blockNodes = block.nodes().map((node) => node?.original()) as Array<
+        InlineNode | InlineNode[]
+      >;
+
+      nodes.forEach((nodeArray, index) => {
+        blockNodes[index] = nodeArray;
+      });
+
+      return blockNodes.flat();
+    },
+    merge: (nodes: InlineNode[]) => {
+      const result: InlineNode[] = [];
+
+      for (const node of nodes) {
+        if (!result.length) {
+          result.push(node);
+        } else {
+          const prev: InlineNode = result[result.length - 1];
+          // #note: It's necessary to add here more conditions when adding more styles
+          const sameStyle = prev.bold === node.bold && prev.italic === node.italic;
+
+          if (sameStyle) {
+            // Merge nodes
+            result[result.length - 1] = {
+              ...prev,
+              text: prev.text + node.text,
+            };
+          } else {
+            result.push(node);
+          }
+        }
       }
+      return result;
+    },
+    cascadeStyle: (nodes: NodeFragment[], style: InlineStyle): boolean => {
+      const nodeModes = _Node.collect(nodes.map((node) => node.id));
 
-      currentOffset += length;
-    }
+      return (
+        nodeModes.some((node) => node?.style.includes(style)) &&
+        !nodeModes.every((node) => node?.style.includes(style))
+      );
+    },
+    // update: (node: NodeModel) => {},
+    // remove: (node: NodeModel) => {},
+  };
 
-    // 3) Pokud máme start i end node, vytvoříme range
-    if (startElement && endElement) {
-      const selection = window.getSelection();
-      const range = document.createRange();
+  /**
+   * The function to create runtime NodeModel.
+   * @param id DOM id of the node
+   * @returns NodeModel
+   */
+  function nodeModel(id?: string) {
+    if (!id) return undefined;
 
-      range.setStart(startElement.firstChild ?? startElement, startNodeOffset);
-      range.setEnd(endElement.firstChild ?? endElement, endNodeOffset);
+    const self = documentData.blocks.find((block) => id?.includes(block.id))?.nodes?.[
+      Number(id?.split("/")[1]) ?? "-1"
+    ] as InlineNode;
 
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-
-    }
+    return {
+      id: id,
+      text: self.text,
+      block_id: id.split("/")[0],
+      index: Number(id.split("/")[1]) ?? -1,
+      style: Object.keys(self).filter((key) => key !== "text") as InlineStyle[],
+      setStyle(style: InlineStyle, force?: boolean) {
+        if (!this.style.includes(style)) {
+          this.style.push(style);
+        } else if (!force) {
+          this.style = this.style.filter((s) => s !== style);
+        }
+      },
+      /** @returns InlineNode */
+      original(): InlineNode {
+        return {
+          text: this.text,
+          ...this.style.reduce((acc: Partial<Record<InlineStyle, boolean>>, style: InlineStyle) => {
+            acc[style] = true;
+            return acc;
+          }, {}),
+        };
+      },
+      /** @returns DOM element */
+      element(): HTMLElement | null {
+        return document.getElementById(id);
+      },
+      /** @returns DOM element */
+      parent(): HTMLElement | null {
+        return document.getElementById(id.split("/")[0]);
+      },
+      /** @returns BlockModel */
+      block() {
+        return blockModel(id.split("/")[0]);
+      },
+      /** @returns NodeModel[] */
+      siblings() {
+        return this.block()?.nodes();
+      },
+    };
   }
 
+  /**
+   * The function to create runtime BlockModel.
+   * @param id DOM id of the block
+   * @returns BlockModel
+   */
+  function blockModel(id?: string) {
+    if (!id) return undefined;
+
+    const self = documentData.blocks.find((block) => block.id === id) as Block;
+
+    return {
+      id: id,
+      type: self.type,
+      index: documentData.blocks.findIndex((block) => block.id === id),
+      /** @returns Block */
+      original(): Block {
+        return self;
+      },
+      /** @returns DOM element */
+      element(): HTMLElement | null {
+        return document.getElementById(id);
+      },
+      /** @returns DOM element[] could return HTMLElement instead */
+      children(): HTMLElement[] {
+        return Array.from(this.element()?.children ?? []).filter(
+          (child): child is HTMLElement => child.nodeType === Node.ELEMENT_NODE
+        );
+      },
+      /** @returns NodeModel[] */
+      nodes(): NonNullable<NodeModel>[] {
+        return Array.from(self.nodes)
+          .map((node, index) => nodeModel(`${id}/${index}`))
+          .filter((node) => node !== undefined);
+      },
+      /** @returns full text of the block */
+      text(): string {
+        return (
+          this.nodes()
+            .map((node) => node?.text)
+            .join("") ?? ""
+        );
+      },
+    };
+  }
+
+  type NodeModel = ReturnType<typeof nodeModel>;
+  type BlockModel = ReturnType<typeof blockModel>;
+
   return {
-    get content(): EditorAnyBlock[] {
-      return documentData.blocks;
+    capture,
+    destroy,
+    data: {
+      get document() {
+        return documentData;
+      },
+      get blocks() {
+        return documentData.blocks;
+      },
     },
-    select,
-    restyle,
-    state: {
-      selectedUnit,
-      cursorPosition,
-      selectionState,
-    },
+    state,
+    node: _Node,
+    block: _Block,
   };
 }
