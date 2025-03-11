@@ -37,7 +37,7 @@ export function useEditor(content: EditorContent) {
    */
   function capture() {
     document.addEventListener("selectionchange", handleSelectionChange);
-    document.addEventListener("input", handleInput);
+    document.addEventListener("beforeinput", handleInput);
     document.addEventListener("keydown", handleKeydown);
   }
 
@@ -48,7 +48,7 @@ export function useEditor(content: EditorContent) {
    */
   function destroy() {
     document.removeEventListener("selectionchange", handleSelectionChange);
-    document.removeEventListener("input", handleInput);
+    document.removeEventListener("beforeinput", handleInput);
     document.removeEventListener("keydown", handleKeydown);
   }
 
@@ -119,9 +119,12 @@ export function useEditor(content: EditorContent) {
    * @param e KeyboardEvent
    */
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') e.preventDefault(); // prozatím
+    // if (e.key === 'Enter') e.preventDefault(); // prozatím
     // if (e.key === 'Backspace') e.preventDefault(); // prozatím
-  }
+    // e.preventDefault();
+
+    // console.log(e);
+    }
 
   return {
     capture,
