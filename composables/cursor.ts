@@ -43,7 +43,6 @@ export function cursorAPI(context: EditorContext) {
       const startChild = startNode.element()?.firstChild;
 
       if (startChild) {
-        console.log(startChild);
         const s = window.getSelection();
         const r = document.createRange();
         r.setStart(startChild, startOffset);

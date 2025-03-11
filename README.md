@@ -11,6 +11,17 @@ Own notion-like rich text editor based Vue.
     - [x] Applying text-node styles
     - [x] Re-applying selection after changing styles
     - [x] Cursor position persists after changing styles
-    - [ ] Sync JSON content with typing
-    - [ ] Cursor persistence after @input
-    - [ ] Ensure user cannot type outside text-node (span)
+    - [x] Sync JSON content with typing
+    - [x] Cursor persistence after @input
+    - [x] Ensure user cannot type outside text-node (span)
+    - [x] Bold, italic by keyboard shortcut
+    - [ ] Handle different type of input
+        - [ ] Backspace - ensure min 1 span presists
+        - [ ] Delete - ensure min 1 span presists
+        - [ ] Arrow keys (left, right) move cursor in block (up, down) move cursor to next block if is on the edge
+        - [ ] Enter create new block
+        - [ ] Select and do action (delete or write)
+
+
+Note:
+- if editor works with like no styled text is't in a span, that would be easier to handle deleting, but harder to handle cursor position and styles.

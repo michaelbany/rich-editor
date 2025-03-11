@@ -20,5 +20,5 @@
   });
 </script>
 <template>
-  <span :style="style" :id="id">{{ props.node.text }}</span>
+  <span :style="style" class="whitespace-pre-wrap" :id="id">{{ props.node.text }}</span>
 </template>

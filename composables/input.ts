@@ -6,6 +6,7 @@ export function inputAPI(context: EditorContext) {
     trigger: (e: InputEvent) => {
       switch (e.inputType) {
         case "insertText":
+          e.preventDefault();
           context.Input.write(e);
           break;
         case "deleteContentBackward":
@@ -30,8 +31,6 @@ export function inputAPI(context: EditorContext) {
       }
     },
     write: (e: InputEvent) => {
-      // FIX Mezera na konci
-      e.preventDefault();
       const cursor = context.state.cursor.get();
       const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
 
