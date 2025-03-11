@@ -6,8 +6,7 @@ export function inputAPI(context: EditorContext) {
     trigger: (e: InputEvent) => {
       switch (e.inputType) {
         case "insertText":
-          e.preventDefault();
-          context.Input.write();
+          context.Input.write(e);
           break;
         case "deleteContentBackward":
           e.preventDefault();
@@ -18,41 +17,41 @@ export function inputAPI(context: EditorContext) {
           context.Input.delete();
           break;
         case "formatBold":
-            e.preventDefault();
-            context.Node.style("bold");
-            break;
+          e.preventDefault();
+          context.Node.style("bold");
+          break;
         case "formatItalic":
-            e.preventDefault();
-            context.Node.style("italic");
-            break;
+          e.preventDefault();
+          context.Node.style("italic");
+          break;
         default:
           e.preventDefault();
           break;
       }
     },
-    write: () => {
-        //   const target = e.target as HTMLElement;
-      //   const block = context.Block.find(target.id) as NonNullable<BlockModel>;
-      //   const cursor = context.state.cursor.get();
-      //   if (!cursor) return;
+    write: (e: InputEvent) => {
+      // FIX Mezera na konci
+      e.preventDefault();
+      const cursor = context.state.cursor.get();
+      const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
 
-      //   const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
-      //   const nodeIndex = node.index;
+      if (!cursor || !block) return e.preventDefault();
 
-      //   node.setText(node.element()?.textContent ?? "");
+      const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
+      node.setText(e.data ?? "", cursor.offset);
 
-      // //   console.log(block.nodes());
-
-      //   context.document.blocks[block.index].nodes[nodeIndex].text = node.text;
-
-      //   context.document.blocks[block.index].nodes = context.document.blocks[block.index].nodes.filter((n) => n.text !== "")
-
-      //   context.Block.cleanEmptyChildren(block);
-      console.log("Write");
+      context.document.blocks[block.index].nodes[node.index].text = node.text;
+      context.Cursor.move(block, cursor.absolute.start + 1);
     },
-    delete: () => {},
-    paste: () => {},
-    cut: () => {},
+    delete: () => {
+      console.log("Delete");
+    },
+    paste: () => {
+      console.log("Paste");
+    },
+    cut: () => {
+      console.log("Cut");
+    },
     validate: (e: Event) => {
       if (!e.target || !e.isTrusted) return false;
 

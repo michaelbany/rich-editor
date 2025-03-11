@@ -132,8 +132,18 @@ export function nodeAPI(context: EditorContext) {
         !nodeModes.every((node) => node?.style.includes(style))
       );
     },
-    // update: (node: NodeModel) => {},
-    // remove: (node: NodeModel) => {},
+    create: (block: NonNullable<BlockModel>): NonNullable<NodeModel> => {
+      const node: InlineNode = { text: "" }
+      block.original().nodes.push(node);
+
+      return block.nodes()[block.nodes().length - 1];
+    },
+    update: (node: NodeModel) => {
+      
+    },
+    remove: (node: NodeModel) => {
+
+    },
   };
 }
 

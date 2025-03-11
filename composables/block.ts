@@ -14,7 +14,10 @@ export function blockAPI(context: EditorContext) {
       for (const node of nodes) {
         const length = node.text.length;
 
-        if (!startNode && currentOffset + length > start) {
+        // Obscure condition when manipulating with cursor
+        let shouldBeStart = start === end ? currentOffset + length >= start : currentOffset + length > start;
+
+        if (!startNode && shouldBeStart) {
           startNode = node;
           startOffset = start - currentOffset;
         }
