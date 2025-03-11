@@ -174,10 +174,55 @@ export function useEditor2(content: EditorContent) {
           ? "backward"
           : "forward";
     },
-    restore: () => {
+    restore: async () => {
       if (!state.selection.get()) return;
+      console.log("Restoring selection");
 
-      console.log("Restoring selection...");
+      await nextTick();
+
+      const selection = state.selection.get(); // Fix TS - it's not null!
+      const block = _Block.find(selection?.block);
+      const blockElements = block?.children();
+      if (!blockElements) return;
+
+
+      // 2) Najít startNode + endNode + jejich posun v textu
+      let currentOffset = 0;
+
+      let startElement = null, startElementOffset = 0;
+      let endElement = null, endElementOffset = 0;
+
+      for (const element of blockElements) {
+        const length = element.innerHTML.length;
+
+        // Ještě jsme nenašli start
+        if (!startElement && currentOffset + length > selection?.start) {
+          startElement = element;
+          startElementOffset = selection?.start - currentOffset;
+        }
+
+        // A analogicky end
+        if (!endElement && currentOffset + length >= selection?.end) {
+          endElement = element;
+          endElementOffset = selection?.end - currentOffset;
+          break;
+        }
+
+        currentOffset += length;
+
+      }
+
+      // 3) Vytvořit Range
+      if (startElement && endElement) {
+        const s = window.getSelection();
+        const r = document.createRange();
+
+        r.setStart(startElement.firstChild ?? startElement, startElementOffset);
+        r.setEnd(endElement.firstChild ?? endElement, endElementOffset);
+
+        s?.removeAllRanges();
+        s?.addRange(r);
+      }
     },
     validate: (s: Selection): boolean => {
       const anchorNodeId = s.anchorNode?.parentElement?.id;
@@ -298,8 +343,7 @@ export function useEditor2(content: EditorContent) {
         state.selection.get()?.nodes.map((node) => node.id) ?? []
       );
 
-      const someNodeHasPickedStyle = selectedNodes.some((node) => node?.style.includes(style));
-      const everyNodeHasPickedStyle = selectedNodes.every((node) => node?.style.includes(style));
+      const someNodeHasPickedStyle = selectedNodes.some((node) => node?.style.includes(style)) && !selectedNodes.every((node) => node?.style.includes(style));
 
       let newNodes: InlineNode[][] = [];
 
@@ -313,8 +357,7 @@ export function useEditor2(content: EditorContent) {
 
         if (selectedText?.trim() === originalNode?.text?.trim()) {
           // Whole node selected
-          // originalNode.style = [style]; // something like this
-          originalNode.setStyle(style, true);
+          originalNode.setStyle(style, someNodeHasPickedStyle);
           newNodes[index] = [originalNode.original()];
         } else {
           // Partial node selected
@@ -322,31 +365,19 @@ export function useEditor2(content: EditorContent) {
 
           const [prefix, middle, suffix] = _Node.split(originalNode, selectedText);
 
-          middle.setStyle(style, true); // #todo - set styling right depending on other siblings
-
-          // console.log("Splitting node", { prefix, middle, suffix });
+          middle.setStyle(style, someNodeHasPickedStyle);
 
           newNodes[index] = [prefix, middle, suffix]
             .filter((node) => node !== undefined)
             .map((node) => node.original());
         }
-
-        // console.log("New nodes", newNodes);
       }
 
       let newBlockNodes = _Node.insert(newNodes, selectedBlock);
-
       newBlockNodes = _Node.merge(newBlockNodes);
 
-      console.log("New block nodes", newBlockNodes);
-
       // UPDATE DOCUMENT
-      // documentData.blocks[selectedBlock.index] = {
-      //   ...selectedBlock.original(),
-      //   nodes: newBlockNodes,
-      // }
-      // // OR
-      // documentData.blocks[selectedBlock.index].nodes = newBlockNodes;
+      documentData.blocks[selectedBlock.index].nodes = newBlockNodes;
 
       _Selection.restore(); // restore selection
 
@@ -444,13 +475,12 @@ export function useEditor2(content: EditorContent) {
       block_id: id.split("/")[0],
       index: Number(id.split("/")[1]) ?? -1,
       style: Object.keys(self).filter((key) => key !== "text") as InlineStyle[],
-      setStyle(style: InlineStyle, value?: boolean) {
+      setStyle(style: InlineStyle, force?: boolean) {
         // #test!! should work also as a toggle (probably works)
-        if (value) {
-          if (!this.style.includes(style)) {
-            this.style.push(style);
-          }
-        } else {
+
+        if (!this.style.includes(style)) {
+          this.style.push(style);
+        } else if (!force) {
           this.style = this.style.filter((s) => s !== style);
         }
       },
