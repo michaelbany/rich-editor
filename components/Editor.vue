@@ -22,11 +22,16 @@
   </div>
   <div class="mb-12">
     <template v-for="block in editor.data.blocks">
-      <EditorBlock :block="block" @input="() => console.log(editor.data.blocks)">
+      <EditorBlock :block="block">
         <EditorTextNode v-for="(node, i) in block.nodes" :node="node" :id="block.id + '/' + i" />
       </EditorBlock>
     </template>
   </div>
+
+  Block texts:
+  <pre>
+    {{ editor.data.blocks.map((block) => block.nodes.map((node) => node.text)) }}
+  </pre>
 
   Cursor position:
   <pre>

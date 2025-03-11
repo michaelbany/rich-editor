@@ -37,6 +37,8 @@ export function useEditor(content: EditorContent) {
    */
   function capture() {
     document.addEventListener("selectionchange", handleSelectionChange);
+    document.addEventListener("input", handleInput);
+    document.addEventListener("keydown", handleKeydown);
   }
 
   /**
@@ -46,6 +48,8 @@ export function useEditor(content: EditorContent) {
    */
   function destroy() {
     document.removeEventListener("selectionchange", handleSelectionChange);
+    document.removeEventListener("input", handleInput);
+    document.removeEventListener("keydown", handleKeydown);
   }
 
   /**
@@ -85,22 +89,38 @@ export function useEditor(content: EditorContent) {
    */
   function handleSelectionChange() {
     const s = window.getSelection();
-
-    // Event ment the selection was cancelled so we sync that
-    if (!s || s.rangeCount === 0) {
-      return;
-    }
+    if (!s || s.rangeCount === 0) return;
 
     state.cursor.clear();
     state.selection.clear();
 
-    // If text selected it's a selection event otherwise it's a cursor event
     if (!s.toString()) {
       context.Cursor.trigger(s);
     } else {
       context.Cursor.trigger(s);
       context.Selection.trigger(s);
     }
+  }
+
+  /**
+   * Handles the input event ment to update node's text.
+   * Also handles 'Enter' key to create new block and 'Backspace' key to remove blocks.
+   * @param e InputEvent
+   */
+  function handleInput(e: Event) {
+    // We have to validate as soon as posible
+    if (!context.Input.validate(e)) return;
+    // Handle the input event
+    context.Input.trigger(e as InputEvent);
+  }
+
+  /**
+   * Handles the keydown event and updates the editor state.
+   * @param e KeyboardEvent
+   */
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter') e.preventDefault(); // prozatím
+    // if (e.key === 'Backspace') e.preventDefault(); // prozatím
   }
 
   return {

@@ -80,6 +80,13 @@ function createNode(context: EditorContext, id?: string) {
         this.style = this.style.filter((s) => s !== style);
       }
     },
+    setText(text: string, offset?: number) {
+      if (offset === undefined) {
+        this.text = text;
+      } else {
+        this.text = this.text.slice(0, offset) + text + this.text.slice(offset);
+      }
+    },
     /** @returns InlineNode */
     original(): InlineNode {
       return {

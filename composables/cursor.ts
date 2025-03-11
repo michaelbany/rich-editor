@@ -30,6 +30,9 @@ export function cursorAPI(context: EditorContext) {
             end: (node?.block()?.text().length ?? 0) - selectionAbsoluteOffset,
           };
         },
+        move: (block: NonNullable<BlockModel>, offset: number) => {
+          
+        },
         validate: (s: Selection): boolean => {
           const anchorNodeId = s.anchorNode?.parentElement?.id;
           const focusNodeId = s.focusNode?.parentElement?.id;
