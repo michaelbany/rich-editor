@@ -93,12 +93,13 @@ export function useEditor2(content: EditorContent) {
       if (!_Selection.validate(s)) return;
 
       const anchorNode = _Node.find(s.anchorNode?.parentElement?.id);
+      if (!anchorNode) return;
 
       const { start, end } = _Selection.offsets(s, anchorNode);
 
       state.selection.set({
         type: "selection",
-        block: anchorNode?.block_id ?? "",
+        block: anchorNode.block_id,
         start: start,
         end: end,
         nodes: [..._Selection.nodes(s)],
@@ -133,11 +134,11 @@ export function useEditor2(content: EditorContent) {
 
       return nodes;
     },
-    offsets: (s: Selection, node: NodeModel): { start: number; end: number } => {
+    offsets: (s: Selection, node: NonNullable<NodeModel>): { start: number; end: number } => {
       let selectionAbsoluteOffset = 0;
       const direction = _Selection.direction(s);
 
-      node?.siblings()?.forEach((sibling, index) => {
+      node.siblings()?.forEach((sibling, index) => {
         if (index < node.index) {
           selectionAbsoluteOffset += sibling?.text?.length ?? 0;
         }
@@ -175,50 +176,30 @@ export function useEditor2(content: EditorContent) {
           : "forward";
     },
     restore: async () => {
-      if (!state.selection.get()) return;
-      console.log("Restoring selection");
+      const selection = state.selection.get();
+      if (!selection) return;
 
       await nextTick();
 
-      const selection = state.selection.get(); // Fix TS - it's not null!
-      const block = _Block.find(selection?.block);
-      const blockElements = block?.children();
-      if (!blockElements) return;
+      const block = _Block.find(selection.block);
+      if (!block) return;
 
+      const { startNode, endNode, endOffset, startOffset } = _Block.childrenInRange(
+        block,
+        selection.start,
+        selection.end
+      );
 
-      // 2) Najít startNode + endNode + jejich posun v textu
-      let currentOffset = 0;
-
-      let startElement = null, startElementOffset = 0;
-      let endElement = null, endElementOffset = 0;
-
-      for (const element of blockElements) {
-        const length = element.innerHTML.length;
-
-        // Ještě jsme nenašli start
-        if (!startElement && currentOffset + length > selection?.start) {
-          startElement = element;
-          startElementOffset = selection?.start - currentOffset;
-        }
-
-        // A analogicky end
-        if (!endElement && currentOffset + length >= selection?.end) {
-          endElement = element;
-          endElementOffset = selection?.end - currentOffset;
-          break;
-        }
-
-        currentOffset += length;
-
-      }
+      const startChild = startNode?.element()?.firstChild;
+      const endChild = endNode?.element()?.firstChild;
 
       // 3) Vytvořit Range
-      if (startElement && endElement) {
+      if (startChild && endChild) {
         const s = window.getSelection();
         const r = document.createRange();
 
-        r.setStart(startElement.firstChild ?? startElement, startElementOffset);
-        r.setEnd(endElement.firstChild ?? endElement, endElementOffset);
+        r.setStart(startChild, startOffset);
+        r.setEnd(endChild, endOffset);
 
         s?.removeAllRanges();
         s?.addRange(r);
@@ -259,16 +240,17 @@ export function useEditor2(content: EditorContent) {
       if (!_Cursor.validate(s)) return;
 
       const anchorNode = _Node.find(s.anchorNode?.parentElement?.id);
+      if (!anchorNode) return;
 
       state.cursor.set({
         type: "cursor",
-        block: anchorNode?.block_id ?? "",
-        node: anchorNode?.id ?? "",
+        block: anchorNode.block_id,
+        node: anchorNode.id,
         offset: s.anchorOffset,
         absolute: _Cursor.offsets(s, anchorNode),
       });
     },
-    offsets: (s: Selection, node: NodeModel): { start: number; end: number } => {
+    offsets: (s: Selection, node: NonNullable<NodeModel>): { start: number; end: number } => {
       let selectionAbsoluteOffset = 0;
 
       node?.siblings()?.forEach((sibling, index) => {
@@ -319,6 +301,34 @@ export function useEditor2(content: EditorContent) {
   const _Block = {
     find: (id?: string): BlockModel => blockModel(id),
     collect: (ids: string[]): BlockModel[] => ids.map((id) => blockModel(id)),
+    childrenInRange: (block: NonNullable<BlockModel>, start: number, end: number) => {
+      const nodes = block.nodes();
+      let currentOffset = 0;
+
+      let startNode = null,
+        endNode = null;
+      let startOffset = 0,
+        endOffset = 0;
+
+      for (const node of nodes) {
+        const length = node.text.length;
+
+        if (!startNode && currentOffset + length > start) {
+          startNode = node;
+          startOffset = start - currentOffset;
+        }
+
+        if (!endNode && currentOffset + length >= end) {
+          endNode = node;
+          endOffset = end - currentOffset;
+          break;
+        }
+
+        currentOffset += length;
+      }
+
+      return { startNode, startOffset, endNode, endOffset };
+    },
     // convert: () => {},
     // move: () => {},
     // remove: () => {},
@@ -330,34 +340,35 @@ export function useEditor2(content: EditorContent) {
    * Every method should except NodeModel|NodeModel[] as a parameter.
    */
   const _Node = {
+    /** Find NodeModel by id */
     find: (id?: string): NodeModel => nodeModel(id),
-    collect: (ids: string[]): NodeModel[] => ids.map((id) => nodeModel(id)),
+
+    /** Collect multiple NodeModels by ids[] */
+    collect: (ids: string[]): NonNullable<NodeModel>[] =>
+      ids.map((id) => nodeModel(id)).filter((node) => node !== undefined),
+
+    /** Style selected NodeFragments */
     style: (style: InlineStyle) => {
-      if (!state.selection.get()) return;
+      const selection = state.selection.get();
+      if (!selection) return;
 
-      const selectedBlock = _Block.find(state.selection.get()?.block);
+      const selectedBlock = _Block.find(selection.block);
       if (!selectedBlock) return;
-      const nodesOfSelectedBlock = selectedBlock?.nodes();
 
-      const selectedNodes = _Node.collect(
-        state.selection.get()?.nodes.map((node) => node.id) ?? []
-      );
-
-      const someNodeHasPickedStyle = selectedNodes.some((node) => node?.style.includes(style)) && !selectedNodes.every((node) => node?.style.includes(style));
+      const forceShareStyle = _Node.cascadeStyle(selection.nodes, style);
 
       let newNodes: InlineNode[][] = [];
 
-      for (const selectedNode of state.selection.get()?.nodes as NodeFragment[]) {
-        const originalNode = _Node.find(selectedNode.id);
-
+      for (const node of selection.nodes) {
+        const originalNode = _Node.find(node.id);
         if (!originalNode) continue;
 
-        const index = originalNode?.index as number;
-        const selectedText = selectedNode.text;
+        const index = originalNode.index;
+        const selectedText = node.text;
 
-        if (selectedText?.trim() === originalNode?.text?.trim()) {
+        if (selectedText.trim() === originalNode.text.trim()) {
           // Whole node selected
-          originalNode.setStyle(style, someNodeHasPickedStyle);
+          originalNode.setStyle(style, forceShareStyle);
           newNodes[index] = [originalNode.original()];
         } else {
           // Partial node selected
@@ -365,7 +376,7 @@ export function useEditor2(content: EditorContent) {
 
           const [prefix, middle, suffix] = _Node.split(originalNode, selectedText);
 
-          middle.setStyle(style, someNodeHasPickedStyle);
+          middle.setStyle(style, forceShareStyle);
 
           newNodes[index] = [prefix, middle, suffix]
             .filter((node) => node !== undefined)
@@ -376,21 +387,19 @@ export function useEditor2(content: EditorContent) {
       let newBlockNodes = _Node.insert(newNodes, selectedBlock);
       newBlockNodes = _Node.merge(newBlockNodes);
 
-      // UPDATE DOCUMENT
+      // Update Document
       documentData.blocks[selectedBlock.index].nodes = newBlockNodes;
 
-      _Selection.restore(); // restore selection
-
-      // console.log("Applying style", style);
+      _Selection.restore();
     },
     /** Split node to 3 parts */
     split: (
       node: NonNullable<NodeModel>,
       selectedText: string
     ): [NodeModel, NonNullable<NodeModel>, NodeModel] => {
-      const originalText = node?.text ?? "";
+      const originalText = node.text;
 
-      const startCut = originalText?.indexOf(selectedText);
+      const startCut = originalText.indexOf(selectedText);
       const endCut = startCut + selectedText.length;
 
       const [prefixText, middleText, suffixText] = [
@@ -419,16 +428,15 @@ export function useEditor2(content: EditorContent) {
       };
     },
     insert: (nodes: InlineNode[][], block: NonNullable<BlockModel>): InlineNode[] => {
-      let blockNodes = block.nodes().map((node) => node?.original());
+      let blockNodes = block.nodes().map((node) => node?.original()) as Array<
+        InlineNode | InlineNode[]
+      >;
 
-      nodes.forEach((node, index) => {
-        /** @ts-ignore */
-        blockNodes[index] = node;
+      nodes.forEach((nodeArray, index) => {
+        blockNodes[index] = nodeArray;
       });
 
-      blockNodes = blockNodes.flat();
-
-      return blockNodes as InlineNode[];
+      return blockNodes.flat();
     },
     merge: (nodes: InlineNode[]) => {
       const result: InlineNode[] = [];
@@ -454,7 +462,16 @@ export function useEditor2(content: EditorContent) {
       }
       return result;
     },
-    // remove: () => {},
+    cascadeStyle: (nodes: NodeFragment[], style: InlineStyle): boolean => {
+      const nodeModes = _Node.collect(nodes.map((node) => node.id));
+
+      return (
+        nodeModes.some((node) => node?.style.includes(style)) &&
+        !nodeModes.every((node) => node?.style.includes(style))
+      );
+    },
+    // update: (node: NodeModel) => {},
+    // remove: (node: NodeModel) => {},
   };
 
   /**
@@ -476,8 +493,6 @@ export function useEditor2(content: EditorContent) {
       index: Number(id.split("/")[1]) ?? -1,
       style: Object.keys(self).filter((key) => key !== "text") as InlineStyle[],
       setStyle(style: InlineStyle, force?: boolean) {
-        // #test!! should work also as a toggle (probably works)
-
         if (!this.style.includes(style)) {
           this.style.push(style);
         } else if (!force) {
@@ -495,11 +510,11 @@ export function useEditor2(content: EditorContent) {
         };
       },
       /** @returns DOM element */
-      element() {
+      element(): HTMLElement | null {
         return document.getElementById(id);
       },
       /** @returns DOM element */
-      parent() {
+      parent(): HTMLElement | null {
         return document.getElementById(id.split("/")[0]);
       },
       /** @returns BlockModel */
@@ -528,23 +543,24 @@ export function useEditor2(content: EditorContent) {
       type: self.type,
       index: documentData.blocks.findIndex((block) => block.id === id),
       /** @returns Block */
-      original() {
+      original(): Block {
         return self;
       },
       /** @returns DOM element */
-      element() {
+      element(): HTMLElement | null {
         return document.getElementById(id);
       },
-      /** @returns DOM element[] */
-      children() {
-        // #!!!: Has to wait to nextTick!!!
+      /** @returns DOM element[] could return HTMLElement instead */
+      children(): HTMLElement[] {
         return Array.from(this.element()?.children ?? []).filter(
-          (child) => child.nodeType === Node.ELEMENT_NODE
+          (child): child is HTMLElement => child.nodeType === Node.ELEMENT_NODE
         );
       },
       /** @returns NodeModel[] */
-      nodes() {
-        return Array.from(self.nodes).map((node, index) => nodeModel(`${id}/${index}`));
+      nodes(): NonNullable<NodeModel>[] {
+        return Array.from(self.nodes)
+          .map((node, index) => nodeModel(`${id}/${index}`))
+          .filter((node) => node !== undefined);
       },
       /** @returns full text of the block */
       text(): string {
