@@ -18,17 +18,28 @@
   const placeholder = {
     paragraph: "Write, press '/' for command...",
     heading: "Heading...",
-  }
+  };
 </script>
 <template>
   <div class="mb-8 space-x-2">
     <UiButton size="icon" @click="editor.node.style('bold')"><Icon name="lucide:bold" /></UiButton>
-    <UiButton size="icon" @click="editor.node.style('italic')"><Icon name="lucide:italic" /></UiButton>
+    <UiButton size="icon" @click="editor.node.style('italic')"
+      ><Icon name="lucide:italic"
+    /></UiButton>
   </div>
   <div class="mb-12">
     <template v-for="block in editor.data.blocks">
       <EditorBlock :block="block">
-        <div class="absolute opacity-35 pointer-events-none" v-if="block.nodes.length === 1 && block.nodes[0].text === ''">{{ placeholder[block.type] }}</div>
+        <div
+          class="pointer-events-none absolute opacity-35"
+          v-if="
+            block.nodes.length === 1 &&
+            block.nodes[0].text === '' &&
+            editor.state.cursor.get()?.block === block.id
+          "
+        >
+          {{ placeholder[block.type] }}
+        </div>
         <EditorTextNode v-for="(node, i) in block.nodes" :node="node" :id="block.id + '/' + i" />
       </EditorBlock>
     </template>

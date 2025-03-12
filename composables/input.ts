@@ -70,7 +70,10 @@ export function inputAPI(context: EditorContext) {
 
       if (!cursor || !block) return;
 
-      if (cursor.absolute.start === 0 && direction === "backward") return;
+      if (cursor.absolute.start === 0 && direction === "backward") {
+        context.Block.remove(block);
+        return;
+      }
       if (cursor.absolute.end === 0 && direction === "forward") return;
 
       const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
