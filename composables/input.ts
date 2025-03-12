@@ -26,25 +26,30 @@ export function inputAPI(context: EditorContext) {
           context.Node.style("italic");
           break;
         default:
+          console.log("refused", e.inputType);
           e.preventDefault();
           break;
       }
     },
+    /** Calls on compositionEnd */
     compose: (e: CompositionEvent) => {
       if (!context.Input.validate(e)) return;
       context.Input.write(e);
     },
+    /** Generic function to write text somewhere */
     write: (e: InputEvent | CompositionEvent) => {
       const cursor = context.state.cursor.get();
       const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
 
       if (!cursor || !block) return e.preventDefault();
 
+      const text = e.data ?? "";
+
       const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
-      node.setText(e.data ?? "", cursor.offset);
+      node.setText(text, cursor.offset);
 
       context.document.blocks[block.index].nodes[node.index].text = node.text;
-      context.Cursor.move(block, cursor.absolute.start + 1);
+      context.Cursor.move(block, cursor.absolute.start + text.length);
     },
     delete: () => {
       console.log("Delete");
