@@ -14,6 +14,11 @@
   onUnmounted(() => {
     editor.destroy();
   });
+
+  const placeholder = {
+    paragraph: "Write, press '/' for command...",
+    heading: "Heading...",
+  }
 </script>
 <template>
   <div class="mb-8 space-x-2">
@@ -23,6 +28,7 @@
   <div class="mb-12">
     <template v-for="block in editor.data.blocks">
       <EditorBlock :block="block">
+        <div class="absolute opacity-35 pointer-events-none" v-if="block.nodes.length === 1 && block.nodes[0].text === ''">{{ placeholder[block.type] }}</div>
         <EditorTextNode v-for="(node, i) in block.nodes" :node="node" :id="block.id + '/' + i" />
       </EditorBlock>
     </template>
