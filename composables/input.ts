@@ -26,10 +26,17 @@ export function inputAPI(context: EditorContext) {
           context.Node.style("italic");
           break;
         default:
-          console.log("refused", e.inputType);
+          console.error("refused", e.inputType);
           e.preventDefault();
           break;
       }
+
+      /**
+       * Other input types:
+       * - insertParagraph (after Enter)
+       * - deleteSoftLineBackward (Shift + Backspace)
+       * - deleteSoftLineForward (Shift + Delete)
+       */
     },
     /** Calls on compositionEnd */
     compose: (e: CompositionEvent) => {

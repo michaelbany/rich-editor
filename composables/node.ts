@@ -138,12 +138,12 @@ export function nodeAPI(context: EditorContext) {
 
       return block.nodes()[block.nodes().length - 1];
     },
-    update: (node: NodeModel) => {
-
-    },
     remove: (node: NonNullable<NodeModel>) => {
-      const blockIndex = node.block()?.index ?? -1;
-      context.document.blocks[blockIndex].nodes.splice(node.index, 1);
+        const block = node.block();
+        if (!block || block.nodes().length === 1) return;
+        
+        const blockIndex = node.block()?.index ?? -1;
+        context.document.blocks[blockIndex].nodes.splice(node.index, 1);
     },
   };
 }
