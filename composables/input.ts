@@ -11,11 +11,11 @@ export function inputAPI(context: EditorContext) {
           break;
         case "deleteContentBackward":
           e.preventDefault();
-          context.Input.delete();
+          context.Input.delete(e, "backward");
           break;
         case "deleteContentForward":
           e.preventDefault();
-          context.Input.delete();
+          context.Input.delete(e, "forward");
           break;
         case "formatBold":
           e.preventDefault();
@@ -41,7 +41,7 @@ export function inputAPI(context: EditorContext) {
       const cursor = context.state.cursor.get();
       const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
 
-      if (!cursor || !block) return e.preventDefault();
+      if (!cursor || !block) return;
 
       const text = e.data ?? "";
 
@@ -51,8 +51,26 @@ export function inputAPI(context: EditorContext) {
       context.document.blocks[block.index].nodes[node.index].text = node.text;
       context.Cursor.move(block, cursor.absolute.start + text.length);
     },
-    delete: () => {
-      console.log("Delete");
+    delete: (e: InputEvent, direction: "forward" | "backward") => {
+      const cursor = context.state.cursor.get();
+      const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
+
+      if (!cursor || !block) return;
+
+      const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
+
+      const deleteLength = direction === "forward" ? 1 : -1;
+      const text = node.text.slice(0, cursor.offset + deleteLength) + node.text.slice(cursor.offset);
+
+      node.setText(text);
+
+      context.document.blocks[block.index].nodes[node.index].text = node.text;
+
+      if (node.text.length === 0) {
+        context.Node.remove(node);
+      }
+
+      context.Cursor.move(block, cursor.absolute.start + deleteLength);
     },
     paste: () => {
       console.log("Paste");
