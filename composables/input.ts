@@ -30,7 +30,11 @@ export function inputAPI(context: EditorContext) {
           break;
       }
     },
-    write: (e: InputEvent) => {
+    compose: (e: CompositionEvent) => {
+      if (!context.Input.validate(e)) return;
+      context.Input.write(e);
+    },
+    write: (e: InputEvent | CompositionEvent) => {
       const cursor = context.state.cursor.get();
       const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
 
@@ -52,7 +56,7 @@ export function inputAPI(context: EditorContext) {
       console.log("Cut");
     },
     validate: (e: Event) => {
-      if (!e.target || !e.isTrusted) return false;
+      if (!e.target) return false;
 
       if (!(e.target instanceof HTMLElement) || !context.Block.find(e.target.id)) {
         console.warn("Input event target is not a valid block element.");

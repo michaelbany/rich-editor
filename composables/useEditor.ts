@@ -39,6 +39,7 @@ export function useEditor(content: EditorContent) {
     document.addEventListener("selectionchange", handleSelectionChange);
     document.addEventListener("beforeinput", handleInput);
     document.addEventListener("keydown", handleKeydown);
+    document.addEventListener("compositionend", context.Input.compose);
   }
 
   /**
@@ -50,6 +51,7 @@ export function useEditor(content: EditorContent) {
     document.removeEventListener("selectionchange", handleSelectionChange);
     document.removeEventListener("beforeinput", handleInput);
     document.removeEventListener("keydown", handleKeydown);
+    document.removeEventListener("compositionend", context.Input.compose);
   }
 
   /**
@@ -122,9 +124,8 @@ export function useEditor(content: EditorContent) {
     // if (e.key === 'Enter') e.preventDefault(); // prozatím
     // if (e.key === 'Backspace') e.preventDefault(); // prozatím
     // e.preventDefault();
-
     // console.log(e);
-    }
+  }
 
   return {
     capture,
