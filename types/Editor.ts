@@ -22,7 +22,7 @@ export type BlockType = "paragraph" | "heading";
  */
 export type Block<T = Record<string, any>> = {
   /** block DOM id */
-  id: string;
+  id: `${string}-${string}-${string}-${string}-${string}`;
   /** type of render component */
   type: BlockType;
   /** text content of the block */

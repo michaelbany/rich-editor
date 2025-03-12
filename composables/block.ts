@@ -1,3 +1,5 @@
+import type { Block, ParagraphBlock } from "~/types";
+
 export function blockAPI(context: EditorContext) {
   return {
     find: (id?: string): BlockModel => context.model.block(id),
@@ -32,6 +34,25 @@ export function blockAPI(context: EditorContext) {
       }
 
       return { startNode, startOffset, endNode, endOffset };
+    },
+    create: async (index: number) => {
+      const block: ParagraphBlock = {
+        id: crypto.randomUUID(),
+        type: "paragraph",
+        nodes: [{ text: ""}],
+        props: {},
+      }
+
+      context.document.blocks.splice(index, 0, block);
+
+      await nextTick();
+
+      const newBlock = context.Block.find(block.id) as NonNullable<BlockModel>;
+
+      context.Cursor.move(newBlock, 0);
+    },
+    remove: () => {
+
     },
     // convert: () => {},
     // move: () => {},

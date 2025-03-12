@@ -25,6 +25,12 @@ export function inputAPI(context: EditorContext) {
           e.preventDefault();
           context.Node.style("italic");
           break;
+        case "insertParagraph":
+            e.preventDefault();
+            const cursor = context.state.cursor.get();
+            const currentBlock = context.Block.find(cursor?.block) as NonNullable<BlockModel>;
+            context.Block.create(currentBlock.index + 1);
+            break;
         default:
           console.error("refused", e.inputType);
           e.preventDefault();
@@ -63,6 +69,9 @@ export function inputAPI(context: EditorContext) {
       const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
 
       if (!cursor || !block) return;
+
+      if (cursor.absolute.start === 0 && direction === "backward") return;
+      if (cursor.absolute.end === 0 && direction === "forward") return;
 
       const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
 

@@ -6,11 +6,13 @@ export function cursorAPI(context: EditorContext) {
       const anchorNode = context.Node.find(s.anchorNode?.parentElement?.id);
       if (!anchorNode) return;
 
+      const anchorText = anchorNode.element()?.textContent ?? "";
+
       context.state.cursor.set({
         type: "cursor",
         block: anchorNode.block_id,
         node: anchorNode.id,
-        offset: s.anchorOffset,
+        offset: realTextOffsetWithoutZWS(anchorText, s.anchorOffset),
         absolute: context.Cursor.offsets(s, anchorNode),
       });
     },
@@ -19,11 +21,13 @@ export function cursorAPI(context: EditorContext) {
 
       node?.siblings()?.forEach((sibling, index) => {
         if (index < node.index) {
-          selectionAbsoluteOffset += sibling?.text?.length ?? 0;
+          selectionAbsoluteOffset += sibling ? realTextLengthWithoutZWS(sibling.text) : 0;
         }
       });
 
-      selectionAbsoluteOffset += s.anchorOffset;
+      const anchorText = node.element()?.textContent ?? "";
+
+      selectionAbsoluteOffset += realTextOffsetWithoutZWS(anchorText, s.anchorOffset);
 
       return {
         start: selectionAbsoluteOffset,

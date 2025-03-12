@@ -9,6 +9,7 @@ export function selectionAPI(context: EditorContext) {
           if (!anchorNode) return;
     
           const { start, end } = context.Selection.offsets(s, anchorNode);
+          if (start === end) return;
     
           context.state.selection.set({
             type: "selection",
@@ -53,21 +54,23 @@ export function selectionAPI(context: EditorContext) {
     
           node.siblings()?.forEach((sibling, index) => {
             if (index < node.index) {
-              selectionAbsoluteOffset += sibling?.text?.length ?? 0;
+              selectionAbsoluteOffset += sibling ? realTextLengthWithoutZWS(sibling.text) : 0;
             }
           });
+
+          const anchorText = node.element()?.textContent ?? "";
     
-          selectionAbsoluteOffset += s.anchorOffset;
+          selectionAbsoluteOffset += realTextOffsetWithoutZWS(anchorText, s.anchorOffset);
     
           if (direction === "backward") {
             return {
-              start: selectionAbsoluteOffset - s.toString().length,
+              start: selectionAbsoluteOffset - realTextLengthWithoutZWS(s.toString()),
               end: selectionAbsoluteOffset,
             };
           } else if (direction === "forward") {
             return {
               start: selectionAbsoluteOffset,
-              end: selectionAbsoluteOffset + s.toString().length,
+              end: selectionAbsoluteOffset + realTextLengthWithoutZWS(s.toString()),
             };
           } else {
             return { start: 0, end: 0 };

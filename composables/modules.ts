@@ -12,7 +12,7 @@ export type EditorContext = {
     model: {
         block: (id?: string) => BlockModel;
         node: (id?: string) => NodeModel;
-    }
+    },
 }
 
 export function modules(partialContext: Partial<EditorContext>) {
@@ -27,7 +27,6 @@ export function modules(partialContext: Partial<EditorContext>) {
     const Node = nodeAPI(context as EditorContext);
 
     const model = modelAPI(context as EditorContext);
-
 
     context.Selection = Selection;
     context.Cursor = Cursor;
