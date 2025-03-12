@@ -6,7 +6,7 @@ export type EditorContext = {
     Selection: SelectionAPI;
     Cursor: CursorAPI;
     Input: InputAPI;
-    Command: CommandAPI;
+    KeyDown: KeydownAPI;
     Block: BlockAPI;
     Node: NodeAPI;
     model: {
@@ -22,7 +22,7 @@ export function modules(partialContext: Partial<EditorContext>) {
     const Selection = selectionAPI(context as EditorContext);
     const Cursor = cursorAPI(context as EditorContext);
     const Input = inputAPI(context as EditorContext);
-    const Command = commandAPI(context as EditorContext);
+    const KeyDown = keydownAPI(context as EditorContext);
     const Block = blockAPI(context as EditorContext);
     const Node = nodeAPI(context as EditorContext);
 
@@ -31,7 +31,7 @@ export function modules(partialContext: Partial<EditorContext>) {
     context.Selection = Selection;
     context.Cursor = Cursor;
     context.Input = Input;
-    context.Command = Command;
+    context.KeyDown = KeyDown;
     context.Block = Block;
     context.Node = Node;
     context.model = model;

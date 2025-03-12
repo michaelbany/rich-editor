@@ -121,10 +121,10 @@ export function useEditor(content: EditorContent) {
    * @param e KeyboardEvent
    */
   function handleKeydown(e: KeyboardEvent) {
-    // if (e.key === 'Enter') e.preventDefault(); // prozatím
-    // if (e.key === 'Backspace') e.preventDefault(); // prozatím
-    // e.preventDefault();
-    // console.log(e);
+    // This means that ve ignore all events if they are not valid
+    if (!context.KeyDown.validate(e)) return;
+    // Handle the keydown event
+    context.KeyDown.trigger(e);
   }
 
   return {

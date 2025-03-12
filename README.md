@@ -18,7 +18,8 @@ Own notion-like rich text editor based Vue.
     - [ ] Handle different type of input
         - [x] Backspace - ensure min 1 span presists
         - [x] Delete - ensure min 1 span presists
-        - [ ] Arrow keys (left, right) move cursor in block (up, down) move cursor to next block if is on the edge
+        - [x] Arrow keys (left, right) move cursor in block (up, down) move cursor to next block
+        - [ ] Up and down arrow keys move in same block if has more lines. If not, move to next block
         - [x] Enter create new block
         - [ ] Select and do action (delete or write)
 

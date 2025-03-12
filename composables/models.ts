@@ -50,6 +50,12 @@ function createBlock(context: EditorContext, id?: string) {
           .join("") ?? ""
       );
     },
+    next() {
+      return createBlock(context, context.document.blocks[this.index + 1]?.id);
+    },
+    previous() {
+      return createBlock(context, context.document.blocks[this.index - 1]?.id);
+    }
   };
 }
 

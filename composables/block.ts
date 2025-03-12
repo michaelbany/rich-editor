@@ -53,10 +53,10 @@ export function blockAPI(context: EditorContext) {
     },
     remove: (block: NonNullable<BlockModel>) => {
       const index = block.index;
-      const previousBlock = context.Block.find(context.document.blocks[index - 1]?.id);
+      const previousBlock = block.previous();
 
       if (!previousBlock) return;
-      
+
       context.document.blocks.splice(index, 1);
       context.Cursor.move(previousBlock, previousBlock.text().length);
     },
