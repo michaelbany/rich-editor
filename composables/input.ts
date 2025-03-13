@@ -17,6 +17,14 @@ export function inputAPI(context: EditorContext) {
           e.preventDefault();
           context.Input.delete(e, "forward");
           break;
+        case "deleteWordBackward":
+          e.preventDefault();
+          // #todo
+          break;
+        case "deleteSoftLineBackward":
+          e.preventDefault();
+          // #todo
+          break;
         case "formatBold":
           e.preventDefault();
           context.Node.style("bold");
@@ -81,22 +89,26 @@ export function inputAPI(context: EditorContext) {
 
       if (!cursor || !block) return;
 
+      // If cursor is at the start of the block
       if (cursor.absolute.start === 0 && direction === "backward") {
         if (block.text().length === 0) {
           context.Block.remove(block);
         } else {
-            // put content to previous block and remove this block
-            context.Block.merge(block, block.previous());
+          // put content to previous block and remove this block
+          context.Block.merge(block, block.previous());
         }
         return;
       }
+
+      // If cursor is at the end of the block
       if (cursor.absolute.end === 0 && direction === "forward") return;
 
       const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
 
-      const deleteLength = direction === "forward" ? 1 : -1;
-      const text =
-        node.text.slice(0, cursor.offset + deleteLength) + node.text.slice(cursor.offset);
+      const start = direction === "backward" ? cursor.offset - 1 : cursor.offset;
+      const end = direction === "backward" ? cursor.offset : cursor.offset + 1;
+      
+      const text = node.text.slice(0, start) + node.text.slice(end);
 
       node.setText(text);
 
@@ -106,7 +118,7 @@ export function inputAPI(context: EditorContext) {
         context.Node.remove(node);
       }
 
-      context.Cursor.move(block, cursor.absolute.start + deleteLength);
+      context.Cursor.move(block, cursor.absolute.start + (direction === "backward" ? -1 : 0));
     },
     paste: () => {
       console.log("Paste");
