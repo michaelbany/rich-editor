@@ -54,7 +54,7 @@ export function nodeAPI(context: EditorContext) {
 
       context.Selection.restore();
     },
-    /** Split node to 3 parts #fixme: brát v potaz index toho textu */
+    /** Split node to 3 parts */
     split: (
       node: NonNullable<NodeModel>,
       selectedText: string,

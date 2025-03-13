@@ -1,4 +1,4 @@
-import type { Block, ParagraphBlock } from "~/types";
+import type { Block, BlockType, InlineNode, ParagraphBlock } from "~/types";
 
 export function blockAPI(context: EditorContext) {
   return {
@@ -17,7 +17,8 @@ export function blockAPI(context: EditorContext) {
         const length = node.text.length;
 
         // Obscure condition when manipulating with cursor
-        let shouldBeStart = start === end ? currentOffset + length >= start : currentOffset + length > start;
+        let shouldBeStart =
+          start === end ? currentOffset + length >= start : currentOffset + length > start;
 
         if (!startNode && shouldBeStart) {
           startNode = node;
@@ -35,13 +36,16 @@ export function blockAPI(context: EditorContext) {
 
       return { startNode, startOffset, endNode, endOffset };
     },
-    create: async (index: number) => {
+    create: async (
+      index: number,
+      attr?: { nodes?: InlineNode[]; type?: BlockType; props?: Record<string, any> }
+    ) => {
       const block: ParagraphBlock = {
         id: crypto.randomUUID(),
-        type: "paragraph",
-        nodes: [{ text: ""}],
-        props: {},
-      }
+        type: attr?.type ?? "paragraph",
+        nodes: attr?.nodes?.length ? attr.nodes : [{ text: "" }],
+        props: attr?.props ?? {},
+      };
 
       context.document.blocks.splice(index, 0, block);
 
@@ -51,18 +55,65 @@ export function blockAPI(context: EditorContext) {
 
       context.Cursor.move(newBlock, 0);
     },
-    remove: (block: NonNullable<BlockModel>) => {
+    /**
+     * Remove block from the document
+     * @returns true if block was removed, false otherwise
+     */
+    remove: (block: NonNullable<BlockModel>, force: boolean = false): boolean => {
       const index = block.index;
       const previousBlock = block.previous();
 
-      if (!previousBlock) return;
+      if (!previousBlock && !force) return false;
 
       context.document.blocks.splice(index, 1);
-      context.Cursor.move(previousBlock, previousBlock.text().length);
+
+      if (previousBlock) context.Cursor.move(previousBlock, previousBlock.text().length);
+
+      return true;
+    },
+    /**
+     * Merge two blocks into one
+     */
+    merge: (block: NonNullable<BlockModel>, into: NonNullable<BlockModel>) => {},
+    /**
+     * Split block into two blocks by given node and offset
+     */
+    split: (
+      block: NonNullable<BlockModel>,
+      at: { node: NonNullable<NodeModel>; offset: number }
+    ) => {
+      const [prefix, suffix] = context.Node.split(
+        at.node,
+        at.node.text.slice(at.offset),
+        at.offset
+      );
+
+      const before = [...at.node.before(), prefix]
+        .filter((n) => n !== undefined)
+        .map((n) => n.original());
+
+      const after = [suffix, ...at.node.after()]
+        .filter((n) => n !== undefined)
+        .map((n) => n.original());
+
+      // Force remove original node
+      context.Block.remove(block, true);
+
+      // Create new blocks
+      context.Block.create(block.index, {
+        nodes: before,
+        type: block.type,
+        props: block.props,
+      });
+
+      context.Block.create(block.index + 1, {
+        nodes: after,
+        type: block.type,
+        props: block.props,
+      });
     },
     // convert: () => {},
     // move: () => {},
-    // remove: () => {},
     // insert: () => {},
   };
 }

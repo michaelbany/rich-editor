@@ -22,6 +22,7 @@ function createBlock(context: EditorContext, id?: string) {
     id: id,
     type: self.type,
     index: context.document.blocks.findIndex((block) => block.id === id),
+    props: self.props,
     /** @returns Block */
     original(): Block {
       return self;
@@ -117,8 +118,25 @@ function createNode(context: EditorContext, id?: string) {
     },
     /** @returns NodeModel[] */
     siblings() {
-      return this.block()?.nodes();
+      return this.block()?.nodes() ?? [];
     },
+    /** @returns next NodeModel in the block */
+    next() {
+      return createNode(context, `${this.block_id}/${this.index + 1}`);
+    },
+    /** @returns previous NodeModel in the block */
+    previous() {
+      return createNode(context, `${this.block_id}/${this.index - 1}`);
+    },
+    /** @returns NodeModel[] after this node in the block */
+    after() {
+      return this.siblings()?.slice(this.index + 1) ?? [];
+    },
+    /** @returns NodeModel[] before this node in the block */
+    before() {
+      return this.siblings()?.slice(0, this.index) ?? [];
+    }
+
   };
 }
 

@@ -26,11 +26,22 @@ export function inputAPI(context: EditorContext) {
           context.Node.style("italic");
           break;
         case "insertParagraph":
-            e.preventDefault();
-            const cursor = context.state.cursor.get();
-            const currentBlock = context.Block.find(cursor?.block) as NonNullable<BlockModel>;
+          e.preventDefault();
+          const cursor = context.state.cursor.get();
+          const currentBlock = context.Block.find(cursor?.block) as NonNullable<BlockModel>;
+
+          if (cursor && cursor.absolute.end !== 0) {
+            const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
+
+            context.Block.split(currentBlock, {
+              node,
+              offset: cursor.offset,
+            });
+          } else {
             context.Block.create(currentBlock.index + 1);
-            break;
+          }
+
+          break;
         default:
           console.error("refused", e.inputType);
           e.preventDefault();
@@ -71,7 +82,12 @@ export function inputAPI(context: EditorContext) {
       if (!cursor || !block) return;
 
       if (cursor.absolute.start === 0 && direction === "backward") {
-        context.Block.remove(block);
+        if (block.text().length === 0) {
+          context.Block.remove(block);
+        } else {
+          // put content to previous block and remove this block
+          // meybe do this only if previous block has same type - fuck this ux false
+        }
         return;
       }
       if (cursor.absolute.end === 0 && direction === "forward") return;
@@ -79,7 +95,8 @@ export function inputAPI(context: EditorContext) {
       const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
 
       const deleteLength = direction === "forward" ? 1 : -1;
-      const text = node.text.slice(0, cursor.offset + deleteLength) + node.text.slice(cursor.offset);
+      const text =
+        node.text.slice(0, cursor.offset + deleteLength) + node.text.slice(cursor.offset);
 
       node.setText(text);
 
