@@ -62,6 +62,8 @@ export type InlineStyle = "bold" | "italic" | "code" | "link";
 export type NodeFragment = Omit<InlineNode, InlineStyle> & {
   /** node DOM id */
   id: string;
+  /** text offset from the start of the node */
+  offset: number;
 };
 
 /**

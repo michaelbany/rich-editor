@@ -30,10 +30,18 @@ export function selectionAPI(context: EditorContext) {
             let node;
             while ((node = walker.nextNode())) {
               const parentElement = node.parentElement;
+
+              const isAnchor = parentElement?.id === s.anchorNode?.parentElement?.id;
+              const isFocus = parentElement?.id === s.focusNode?.parentElement?.id;
+
+              const anchorOffset = isAnchor ? s.anchorOffset : 0;
+              const focusOffset = isFocus ? s.focusOffset : 0;
+
               if (parentElement) {
                 nodes.push({
                   id: parentElement.id,
                   text: parentElement.textContent ?? "",
+                  offset: context.Selection.direction(s) === 'forward' ? anchorOffset : focusOffset,
                 });
               }
             }
@@ -42,6 +50,7 @@ export function selectionAPI(context: EditorContext) {
               nodes.push({
                 id: s.anchorNode?.parentElement.id,
                 text: s.toString(),
+                offset: context.Selection.direction(s) === 'forward' ? s.anchorOffset : s.focusOffset,
               });
             }
           }
