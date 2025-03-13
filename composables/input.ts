@@ -19,10 +19,12 @@ export function inputAPI(context: EditorContext) {
           break;
         case "deleteWordBackward":
           e.preventDefault();
+          context.Input.delete(e, "backward");
           // #todo
           break;
         case "deleteSoftLineBackward":
           e.preventDefault();
+          context.Input.delete(e, "backward");
           // #todo
           break;
         case "formatBold":
@@ -33,6 +35,7 @@ export function inputAPI(context: EditorContext) {
           e.preventDefault();
           context.Node.style("italic");
           break;
+        case "insertLineBreak":
         case "insertParagraph":
           e.preventDefault();
           const cursor = context.state.cursor.get();
@@ -58,9 +61,8 @@ export function inputAPI(context: EditorContext) {
 
       /**
        * Other input types:
-       * - insertParagraph (after Enter)
        * - deleteSoftLineBackward (Shift + Backspace)
-       * - deleteSoftLineForward (Shift + Delete)
+       * - insertLineBreak (Shift + Enter)
        */
     },
     /** Calls on compositionEnd */
@@ -133,8 +135,6 @@ export function inputAPI(context: EditorContext) {
       if (!e.target) return false;
 
       if (!(e.target instanceof HTMLElement) || !context.Block.find(e.target.id)) {
-        console.warn("Input event target is not a valid block element.");
-        e.preventDefault();
         return false;
       }
 

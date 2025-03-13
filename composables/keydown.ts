@@ -15,20 +15,37 @@ export function keydownAPI(context: EditorContext) {
          * instead of the next block.
          */
         arrow: (e: KeyboardEvent, direction: 'up'|'down') => {
-            const currentBlock = context.Block.find(context.state.cursor.get()?.block);
-            let block;
-            const startIndex = context.state.cursor.get()?.absolute.start;
+            const oldCursor = context.state.cursor.get();
+            if (!oldCursor) return;
 
-            if (direction === 'up') {
-                block = currentBlock?.previous();
-            } else {
-                block = currentBlock?.next();
-            }
+            const oldOffset = oldCursor.absolute.start;
 
-            if (block) {
-                e.preventDefault();
-                context.Cursor.move(block, startIndex ?? 0);
-            }
+            requestAnimationFrame(() => {
+                const newCursor = context.state.cursor.get();
+                if (!newCursor) return;
+
+                if (newCursor.absolute.start === oldOffset) {
+                    console.log('Move to the previous block WRONG');
+                } else {
+                    console.log('Stay WRONG');
+                }
+            });
+
+
+            // const currentBlock = context.Block.find(context.state.cursor.get()?.block);
+            // let block;
+            // const startIndex = context.state.cursor.get()?.absolute.start;
+
+            // if (direction === 'up') {
+            //     block = currentBlock?.previous();
+            // } else {
+            //     block = currentBlock?.next();
+            // }
+
+            // if (block) {
+            //     e.preventDefault();
+            //     context.Cursor.move(block, startIndex ?? 0);
+            // }
         },
         validate: (e: KeyboardEvent): boolean => {
             if (!e.target) return false;
