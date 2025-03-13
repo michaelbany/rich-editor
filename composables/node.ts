@@ -36,7 +36,7 @@ export function nodeAPI(context: EditorContext) {
           // Partial node selected
           if (!selectedText.trim()) continue; // pokud je vyběr prázdný, vracíme beze změny
 
-          const [prefix, middle, suffix] = context.Node.split(originalNode, selectedText);
+          const [prefix, middle, suffix] = context.Node.split(originalNode, selectedText, node.offset);
 
           middle.setStyle(style, forceShareStyle);
 
@@ -57,11 +57,12 @@ export function nodeAPI(context: EditorContext) {
     /** Split node to 3 parts #fixme: brát v potaz index toho textu */
     split: (
       node: NonNullable<NodeModel>,
-      selectedText: string
+      selectedText: string,
+      startOffset: number
     ): [NodeModel, NonNullable<NodeModel>, NodeModel] => {
       const originalText = node.text;
 
-      const startCut = originalText.indexOf(selectedText);
+      const startCut = startOffset;
       const endCut = startCut + selectedText.length;
 
       const [prefixText, middleText, suffixText] = [
