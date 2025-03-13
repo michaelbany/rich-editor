@@ -85,8 +85,8 @@ export function inputAPI(context: EditorContext) {
         if (block.text().length === 0) {
           context.Block.remove(block);
         } else {
-          // put content to previous block and remove this block
-          // meybe do this only if previous block has same type - fuck this ux false
+            // put content to previous block and remove this block
+            context.Block.merge(block, block.previous());
         }
         return;
       }

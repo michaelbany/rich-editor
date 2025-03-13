@@ -74,7 +74,17 @@ export function blockAPI(context: EditorContext) {
     /**
      * Merge two blocks into one
      */
-    merge: (block: NonNullable<BlockModel>, into: NonNullable<BlockModel>) => {},
+    merge: (block: NonNullable<BlockModel>, into: BlockModel) => {
+      if (into) {
+        const nodes = block.nodes().map((node) => node.original());
+        const intoLength = into.text().length;
+        into.original().nodes.push(...nodes);
+
+        context.Block.remove(block);
+
+        context.Cursor.move(into, intoLength);
+      }
+    },
     /**
      * Split block into two blocks by given node and offset
      */
@@ -90,10 +100,12 @@ export function blockAPI(context: EditorContext) {
 
       const before = [...at.node.before(), prefix]
         .filter((n) => n !== undefined)
+        .filter((n) => n.text.length > 0)
         .map((n) => n.original());
 
       const after = [suffix, ...at.node.after()]
         .filter((n) => n !== undefined)
+        .filter((n) => n.text.length > 0)
         .map((n) => n.original());
 
       // Force remove original node
