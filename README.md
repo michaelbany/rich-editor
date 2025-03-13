@@ -21,7 +21,9 @@ Own notion-like rich text editor based Vue.
         - [x] Arrow keys (left, right) move cursor in block (up, down) move cursor to next block
         - [ ] Up and down arrow keys move in same block if has more lines. If not, move to next block
         - [x] Enter create new block
+        - [ ] If there is a text after cursor, split text-node and move to new block (Enter)
         - [ ] Select and do action (delete or write)
+        - [ ] Deleting multiple words with backspace + ctrl (meta) (deleteSoftLineBackward)
 
 
 Note:

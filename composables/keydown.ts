@@ -2,39 +2,32 @@ export function keydownAPI(context: EditorContext) {
     return {
         trigger: (e: KeyboardEvent) => {
             switch (e.key) {
-
-                /**
-                 * #todo:
-                 * Je třeba zajistit že když má obsah více řádků
-                 * tak aby se kurzor posunul ještě v rámci jednoho
-                 * blocku. Ale nevím jak to udělat.
-                 * 
-                 * - A udělat toto do 1 funkce
-                 */
                 case "ArrowUp":
-                    const block = context.Block.find(context.state.cursor.get()?.block);
-                    const previousBlock = block?.previous();
-
-                    const startIndex = context.state.cursor.get()?.absolute.start;
-
-                    if (previousBlock) {
-                        e.preventDefault();
-                        context.Cursor.move(previousBlock, startIndex ?? 0);
-                    }
-
+                    context.KeyDown.arrow(e, 'up');
                     break;
                 case "ArrowDown":
-                    const blockL = context.Block.find(context.state.cursor.get()?.block);
-                    const nextBlock = blockL?.next();
-                    
-                    const startIndexL = context.state.cursor.get()?.absolute.start;
-                    
-                    if (nextBlock) {
-                        e.preventDefault();
-                        context.Cursor.move(nextBlock, startIndexL ?? 0);
-                    }
-                    
+                    context.KeyDown.arrow(e, 'down');
                     break;
+            }
+        },
+        /**
+         * #todo: If block has more rows should move to the next row
+         * instead of the next block.
+         */
+        arrow: (e: KeyboardEvent, direction: 'up'|'down') => {
+            const currentBlock = context.Block.find(context.state.cursor.get()?.block);
+            let block;
+            const startIndex = context.state.cursor.get()?.absolute.start;
+
+            if (direction === 'up') {
+                block = currentBlock?.previous();
+            } else {
+                block = currentBlock?.next();
+            }
+
+            if (block) {
+                e.preventDefault();
+                context.Cursor.move(block, startIndex ?? 0);
             }
         },
         validate: (e: KeyboardEvent): boolean => {
