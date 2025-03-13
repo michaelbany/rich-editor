@@ -2,7 +2,7 @@
   import type { EditorContent } from "~/types";
 
   useHead({
-    title: "Test",
+    title: "Editor",
   });
 
   const content: EditorContent = [
