@@ -74,8 +74,8 @@ export function blockAPI(context: EditorContext) {
     /**
      * Merge two blocks into one
      */
-    merge: (block: NonNullable<BlockModel>, into: BlockModel) => {
-      if (into) {
+    merge: (block: BlockModel, into: BlockModel) => {
+      if (into && block) {
         const nodes = block.nodes().map((node) => node.original());
         const intoLength = into.text().length;
         into.original().nodes.push(...nodes);

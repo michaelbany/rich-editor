@@ -101,13 +101,16 @@ export function inputAPI(context: EditorContext) {
       }
 
       // If cursor is at the end of the block
-      if (cursor.absolute.end === 0 && direction === "forward") return;
+      if (cursor.absolute.end === 0 && direction === "forward") {
+        context.Block.merge(block.next(), block);
+        return;
+      }
 
       const node = context.Node.find(cursor.node) as NonNullable<NodeModel>;
 
       const start = direction === "backward" ? cursor.offset - 1 : cursor.offset;
       const end = direction === "backward" ? cursor.offset : cursor.offset + 1;
-      
+
       const text = node.text.slice(0, start) + node.text.slice(end);
 
       node.setText(text);
