@@ -55,6 +55,15 @@ export function cursorAPI(context: EditorContext) {
         s?.addRange(r);
       }
     },
+    boundary: () => {
+      context.Cursor.validate(window.getSelection() as Selection);
+
+      const selection = window.getSelection();
+      if (!selection) return;
+
+      const range = selection.getRangeAt(0);
+      return range.getBoundingClientRect();
+    },
     validate: (s: Selection): boolean => {
       const anchorNodeId = s.anchorNode?.parentElement?.id;
       const focusNodeId = s.focusNode?.parentElement?.id;
