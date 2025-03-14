@@ -14,22 +14,22 @@
 
     switch (component) {
       case "h1":
-        style = { fontSize: "2rem" };
+        style = { fontSize: "2rem", fontWeight: "bold", marginBottom: "0.3em" };
         break;
       case "h2":
-        style = { fontSize: "1.5rem" };
+        style = { fontSize: "1.8rem", fontWeight: "bold", marginBottom: "0.3em" };
         break;
       case "h3":
-        style = { fontSize: "1.17rem" };
+        style = { fontSize: "1.6rem", fontWeight: "bold", marginBottom: "0.3em" };
         break;
       case "h4":
-        style = { fontSize: "1rem" };
+        style = { fontSize: "1.5rem", fontWeight: "bold", marginBottom: "0.3em" };
         break;
       case "h5":
-        style = { fontSize: "0.83rem" };
+        style = { fontSize: "1.4rem", fontWeight: "bold", marginBottom: "0.3em" };
         break;
       case "h6":
-        style = { fontSize: "0.67rem" };
+        style = { fontSize: "1.2rem", fontWeight: "bold", marginBottom: "0.3em" };
         break;
     }
 
@@ -39,7 +39,7 @@
   const component = computed(() => {
     switch (props.block.type) {
       case "paragraph":
-        return h("p", { id: props.block.id });
+        return h("p", { id: props.block.id, style: { marginBottom: "0.5em" } });
       case "heading":
         return headingComponent();
       default:

@@ -13,7 +13,7 @@
           text: "Heading 1",
         },
       ],
-      props: { level: 2 },
+      props: { level: 1 },
     },
     {
       type: "paragraph",
