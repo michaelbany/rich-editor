@@ -47,33 +47,4 @@
   const props = defineProps<{
     items: any[];
   }>();
-  //   const menuitems = [
-  //     { label: "My Account" },
-  //     { divider: true },
-  //     { title: "Profile", icon: "ph:user", shortcut: "⇧⌘P" },
-  //     { title: "Billing", icon: "ph:credit-card", shortcut: "⌘B" },
-  //     { title: "Settings", icon: "ph:gear", shortcut: "⌘S" },
-  //     { title: "Keyboard shortcuts", icon: "ph:keyboard", shortcut: "⌘K" },
-  //     { divider: true },
-  //     { title: "Team", icon: "ph:users", shortcut: "⇧⌘T" },
-  //     {
-  //       title: "Invite Users",
-  //       icon: "ph:user-plus",
-  //       items: [
-  //         { title: "Email", icon: "ph:envelope", shortcut: "⇧⌘E" },
-  //         { title: "Facebook", icon: "logos:facebook", shortcut: "⇧⌘F" },
-  //         { title: "Twitter", icon: "logos:twitter", shortcut: "⇧⌘T" },
-  //         { divider: true },
-  //         { title: "More", icon: "ph:plus-circle" },
-  //       ],
-  //     },
-  //     { title: "Settings", icon: "ph:gear", shortcut: "⌘S" },
-  //     { title: "Keyboard shortcuts", icon: "ph:keyboard", shortcut: "⌘K" },
-  //     { divider: true },
-  //     { title: "Github", icon: "ph:github-logo" },
-  //     { title: "Support", icon: "ph:lifebuoy" },
-  //     { title: "API", icon: "ph:cloud", disabled: true },
-  //     { divider: true },
-  //     { title: "Sign out", icon: "ph:sign-out" },
-  //   ];
 </script>

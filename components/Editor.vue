@@ -77,13 +77,6 @@
   }
 </script>
 <template>
-  <div class="mb-8 space-x-2">
-    <UiButton size="icon" @click="editor.node.style('bold')"><Icon name="lucide:bold" /></UiButton>
-    <UiButton size="icon" @click="editor.node.style('italic')"
-      ><Icon name="lucide:italic"
-    /></UiButton>
-
-  </div>
   <div class="mb-12">
     <template v-for="block in editor.data.blocks">
       <div class="group flex items-baseline space-x-2">
