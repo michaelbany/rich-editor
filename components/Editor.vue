@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import type { EditorContent } from "~/types";
+  import type { Block, EditorContent } from "~/types";
 
   const props = defineProps<{
     content: EditorContent;
@@ -20,7 +20,7 @@
     heading: "Heading...",
   };
 
-  function createItemsForBlock(block) {
+  function createItemsForBlock(block: Block) {
     return [
       {
         title: "Comment",
@@ -82,6 +82,7 @@
     <UiButton size="icon" @click="editor.node.style('italic')"
       ><Icon name="lucide:italic"
     /></UiButton>
+
   </div>
   <div class="mb-12">
     <template v-for="block in editor.data.blocks">
@@ -94,15 +95,16 @@
           </EditorDropdown>
         </div>
         <EditorBlock :block="block">
+          <EditorStylePopover :selection="editor.state.selection.get()" :block="block" :editor="editor" />
           <div
-            class="pointer-events-none absolute opacity-35"
-            v-if="
+          class="pointer-events-none absolute opacity-35"
+          v-if="
               block.nodes.length === 1 &&
               block.nodes[0].text === '' &&
               editor.state.cursor.get()?.block === block.id
-            "
+              "
           >
-            {{ placeholder[block.type] }}
+          {{ placeholder[block.type] }}
           </div>
           <EditorTextNode v-for="(node, i) in block.nodes" :node="node" :id="block.id + '/' + i" />
         </EditorBlock>

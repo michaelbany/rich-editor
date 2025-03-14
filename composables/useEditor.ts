@@ -143,3 +143,5 @@ export function useEditor(content: EditorContent) {
     block: context.Block,
   };
 }
+
+export type EditorReturn = ReturnType<typeof useEditor>;
