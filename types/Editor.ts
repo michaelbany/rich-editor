@@ -15,7 +15,85 @@ export type EditorContent = Omit<Block, "id">[];
  * Block types currently supported by the editor.
  */
 export type BlockType = "paragraph" | "heading";
+
+/** EXPERIMENTAL */
 type ExperimentalBlockType = "paragraph" | "heading-1" | "heading-2" | "heading-3"; // ...
+
+/**
+ * Přímé pojmenování akcí umožňuje jasné nastavení
+ * 'práv' bloku, které mohou být provedeny.
+ * 
+ * Například tabulka může mít prevent 'split' což znamená,
+ * že node může být styled celý, ale nemůže být rozdělen.
+ * 
+ * Ale pokud bychom přešli do situace, kdy tabulka je tvořena
+ * z jednotlivých 'table-cell' bloků, můžeme dovolit 'split'
+ * - při 'Enter' by se splitnul node a vytvořil se nový 'table-cell'
+ * podle defaultního chování {chain: true}.
+ * 
+ * chain:boolean - by měl možná být preciznější v tom co má následovat
+ * možná by měl vrátit cely například ParagraphBlock typ. Jako naprosto konkrétní
+ * typ, který má následovat. A tím budeme naprosto precizní.
+ * ListBlock<T, K> by mohl obsahovat proměnné parametry, které souvisí s typem
+ * např. ListBlock<T = "list-item", index = 2> by mohl být typ, který má následovat
+ * 
+ * #idea 1: Vlastně se nemusím omezovat na totální strukturu, Každý komponent
+ * by mohl mít vlastní způsob renderování (přímo ve vue komponentě) a nastavit
+ * contentEditable až tam kde chce. Víme, že editor automaticky detekuje 'block'
+ * pokud nebude block k dispozici nic se nestane
+ * 
+ * #idea 2: Kdyby InlineNode měl attr 'role' tak toto by možná mohlo vyřešit například
+ * renderování `linku` nebo dalších inline elementů. A možná i table-cells.
+ * Mohl bych předat přímo attr 'as' a to by vracelo h() funkci. Node by se mohl vždy
+ * dynamicky renderovat a pouze default by byl <span id="node.id">node.text</span>
+ * ale vzhledem k tomu, že se editor vždy dívá na ID, tak nezáleží na tagu. A mohl bych mít něco
+ * jako: <a href="as.href (asi)" id="node.id" style="text-wight: bold">node.text</a>
+ * Akorát je tam problém se splitováním nodes, protože by se mi vytvořily například 2 <a> tagy
+ * stejně tak 2 <td> tagy což už by bylo špatně.
+ * #important: Notion vytváří duplicitní tagy pro <a> když se na část textu aplikuje styl. Funguje to přesně takto.
+ * 
+ * Kdyby node.as (tedy speciální node) složil jenom jako wrapper tak by se mohl ignorovat
+ * při splitování. A tehdy by to fungovalo i u tabulek. 
+ * Ale možná zbytečně komplexní.
+ * 
+ * #idea 3: Pravděpodobně kombinace obou přístupů bude nejlepší řešení
+ * Existují tedy speciální nodes (link), ale pro table-cell je třeba to využít
+ * jako block. 
+ * Pokud by šel link nastavit jako 'inline' pomocí CSS i když by to byl block. Tak by mohly všechny být bloky.
+ * Ale u inline Bloku si dávat pozor na chování bloků a kurzor pozice a tak dále. TESTOVAT HODNĚ
+ * 
+ * 
+ * #todo: 
+ *  - Zkus odstranit defaultní props a převeď heading na heading-{level}
+ *  - Každý block typ by měl mít svůj vlastní Vue Component
+ *  - Potom zkus jen skrz data vyrenderovat například list nebo table
+ *  - a uvidíš jak se to bude chovat
+ *  - cílem je pro toto udělat co nejméně změn v editoru (zatím neřešit BlockBehavors a Actions)
+ * 
+ * #note: Pokud bych každou část zanořených bloků definoval jako samostatný block
+ * např. "list-item"| "table-cell"| "table-row" měl bych mít na každý tento block
+ * vlastní vue komponent, kde bude definované že každý table-cell se renderuje jako td například
+ * Tímto způsobem by se dokument mohl generovat trochu automaticky, protože by se o tom postaralo HTML samotné
+ */
+
+/**
+ * style: apply styles to nodes
+ * split: split block's node into multiple nodes
+ * combinate-styles: Current style can be combined with the other style (needs style map to defined style behavior)
+ * convert: convert block to another type
+ * fill: fill block with content (nodes)
+ */
+type ExperimentalActions = "style" | "split" | "combinate-styles" | "convert" | "fill";
+type ExperimentalBlockBehaviors = {
+  /** Prevent specific actions on the block */
+  prevent: ExperimentalActions[];
+  /** Define custom wrapper for the block */
+  container: string; // HTML tag (e.g. "ul")
+  /** Next block should be of the same type */
+  chain: boolean;
+  /** Level indicates the hierarchy of the block */
+  level: number;
+}
 
 /**
  * General structure of a block in the document.
@@ -79,7 +157,7 @@ export type EditorEventStateType = 'selection' | 'cursor';
  */
 type BlockState = SelectionState | CursorState;
 
-type ContentState = SelectedNodesState | FocusedBlockState;
+type ContentState = any;
 
 type EditorStateMap = {
   selection: SelectionState;
@@ -134,26 +212,3 @@ export type CursorState = {
   /** absolute offset in the block */
   absolute: {start: number, end: number};
 };
-
-/**
- * State of the editor when nodes are selected.
- * NOT USING!!
- */
-export type SelectedNodesState = {
-    type: "selectedNodes";
-    /** block id where the nodes are */
-    block: string;
-    /** nodes that are focused */
-    node: InlineNode[];
-    /** styles set that are applied to the nodes */
-    styles: Record<InlineStyle, boolean>;
-}
-
-/**
- * State of the editor when a block is focused.
- * NOT USING!!
- */
-export type FocusedBlockState = {
-    /** block id that is focused */
-    block: string;
-}

@@ -26,5 +26,5 @@ Own notion-like rich text editor based Vue.
         - [ ] Deleting multiple words with backspace + ctrl (meta) (deleteSoftLineBackward)
 
 
-Note:
-- if editor works with like no styled text is't in a span, that would be easier to handle deleting, but harder to handle cursor position and styles.
+- **Bugs spotted**
+    - [ ] When writing more than 1 character, cursor moves only after 1st character

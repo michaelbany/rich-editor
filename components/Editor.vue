@@ -25,16 +25,18 @@
       {
         title: "Comment",
         icon: "lucide:message-circle",
+        disabled: true,
       },
       { divider: true },
       {
         title: "Delete",
         icon: "lucide:trash",
-        click: () => console.log("Delete block", block.id),
+        disabled: true,
       },
       {
         title: "Duplicate",
         icon: "lucide:copy",
+        disabled: true,
       },
       {
         title: "Turn into",
@@ -64,10 +66,12 @@
       {
         title: "Move Up",
         icon: "lucide:arrow-up",
+        disabled: true,
       },
       {
         title: "Move Down",
         icon: "lucide:arrow-down",
+        disabled: true,
       },
       { divider: true },
       {
