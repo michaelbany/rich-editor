@@ -1,9 +1,11 @@
+import type { NodeFragment } from "~/types";
+
 export function cursorAPI(context: EditorContext) {
   return {
     trigger: (s: Selection) => {
       if (!context.Cursor.validate(s)) return;
 
-      const anchorNode = context.Node.find(s.anchorNode?.parentElement?.id);
+      const anchorNode = context.Node.find(s.anchorNode?.parentElement?.id as NodeFragment['id']);
       if (!anchorNode) return;
 
       const anchorText = anchorNode.element()?.textContent ?? "";

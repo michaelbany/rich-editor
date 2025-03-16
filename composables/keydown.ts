@@ -1,3 +1,5 @@
+import type { Block } from "~/types";
+
 export function keydownAPI(context: EditorContext) {
   return {
     trigger: (e: KeyboardEvent) => {
@@ -68,7 +70,7 @@ export function keydownAPI(context: EditorContext) {
     validate: (e: KeyboardEvent): boolean => {
       if (!e.target) return false;
 
-      if (!(e.target instanceof HTMLElement) || !context.Block.find(e.target.id)) {
+      if (!(e.target instanceof HTMLElement) || !context.Block.find(e.target.id as Block['id'])) {
         console.warn("Input event target is not a valid block element.");
         return false;
       }

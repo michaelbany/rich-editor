@@ -1,9 +1,9 @@
-import type { Block, InlineNode, InlineStyle } from "~/types";
+import type { Block, InlineNode, InlineStyle, NodeFragment } from "~/types";
 
 export function modelAPI(context: EditorContext) {
   return {
-    block: (id?: string) => createBlock(context, id),
-    node: (id?: string) => createNode(context, id),
+    block: (id?: Block['id']) => createBlock(context, id),
+    node: (id?: NodeFragment['id']) => createNode(context, id),
   };
 }
 
@@ -12,7 +12,7 @@ export function modelAPI(context: EditorContext) {
  * @param id DOM id of the block
  * @returns BlockModel
  */
-function createBlock(context: EditorContext, id?: string) {
+function createBlock(context: EditorContext, id?: Block['id']) {
   if (!id) return undefined;
 
   const self = context.document.blocks.find((block) => block.id === id) as Block;
@@ -40,7 +40,7 @@ function createBlock(context: EditorContext, id?: string) {
     /** @returns NodeModel[] */
     nodes(): NonNullable<NodeModel>[] {
       return Array.from(self.nodes)
-        .map((node, index) => createNode(context, `${id}/${index}`))
+        .map((node, index) => createNode(context, `${id}/${index}` as NodeFragment['id']))
         .filter((node) => node !== undefined);
     },
     /** @returns full text of the block */
@@ -65,7 +65,7 @@ function createBlock(context: EditorContext, id?: string) {
  * @param id DOM id of the node
  * @returns NodeModel
  */
-function createNode(context: EditorContext, id?: string) {
+function createNode(context: EditorContext, id?: NodeFragment['id']) {
   if (!id) return undefined;
 
   const self = context.document.blocks.find((block) => id?.includes(block.id))?.nodes?.[
@@ -77,7 +77,7 @@ function createNode(context: EditorContext, id?: string) {
   return {
     id: id,
     text: self.text,
-    block_id: id.split("/")[0],
+    block_id: id.split("/")[0] as Block['id'],
     index: Number(id.split("/")[1]) ?? -1,
     style: Object.keys(self).filter((key) => key !== "text") as InlineStyle[],
     setStyle(style: InlineStyle, force?: boolean) {
@@ -114,7 +114,7 @@ function createNode(context: EditorContext, id?: string) {
     },
     /** @returns BlockModel */
     block() {
-      return createBlock(context, id.split("/")[0]);
+      return createBlock(context, id.split("/")[0] as Block['id']);
     },
     /** @returns NodeModel[] */
     siblings() {

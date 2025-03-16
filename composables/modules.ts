@@ -1,4 +1,4 @@
-import type { EditorDocument, EditorStateSchema } from "~/types";
+import type { Block, EditorDocument, EditorStateSchema, NodeFragment } from "~/types";
 
 export type EditorContext = {
     document: EditorDocument;
@@ -10,8 +10,8 @@ export type EditorContext = {
     Block: BlockAPI;
     Node: NodeAPI;
     model: {
-        block: (id?: string) => BlockModel;
-        node: (id?: string) => NodeModel;
+        block: (id?: Block['id']) => BlockModel;
+        node: (id?: NodeFragment['id']) => NodeModel;
     },
 }
 

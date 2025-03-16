@@ -1,3 +1,5 @@
+import type { Block } from "~/types";
+
 /**
  * Handles text input that affects the node's text.
  */
@@ -77,7 +79,7 @@ export function inputAPI(context: EditorContext) {
     /** Generic function to write text somewhere */
     write: (e: InputEvent | CompositionEvent) => {
       const cursor = context.state.cursor.get();
-      const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
+      const block = context.Block.find((e.target as HTMLElement).id as Block['id']) as NonNullable<BlockModel>;
 
       if (!cursor || !block) return;
 
@@ -91,7 +93,7 @@ export function inputAPI(context: EditorContext) {
     },
     delete: (e: InputEvent, direction: "forward" | "backward") => {
       const cursor = context.state.cursor.get();
-      const block = context.Block.find((e.target as HTMLElement).id) as NonNullable<BlockModel>;
+      const block = context.Block.find((e.target as HTMLElement).id as Block['id']) as NonNullable<BlockModel>;
 
       if (!cursor || !block) return;
 
@@ -138,7 +140,7 @@ export function inputAPI(context: EditorContext) {
     validate: (e: Event) => {
       if (!e.target) return false;
 
-      if (!(e.target instanceof HTMLElement) || !context.Block.find(e.target.id)) {
+      if (!(e.target instanceof HTMLElement) || !context.Block.find(e.target.id as Block['id'])) {
         return false;
       }
 

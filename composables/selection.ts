@@ -5,7 +5,7 @@ export function selectionAPI(context: EditorContext) {
         trigger: (s: Selection) => {
           if (!context.Selection.validate(s)) return;
     
-          const anchorNode = context.Node.find(s.anchorNode?.parentElement?.id);
+          const anchorNode = context.Node.find(s.anchorNode?.parentElement?.id as NodeFragment['id']);
           if (!anchorNode) return;
     
           const { start, end } = context.Selection.offsets(s, anchorNode);
@@ -39,7 +39,7 @@ export function selectionAPI(context: EditorContext) {
 
               if (parentElement) {
                 nodes.push({
-                  id: parentElement.id,
+                  id: parentElement.id as NodeFragment['id'],
                   text: parentElement.textContent ?? "",
                   offset: context.Selection.direction(s) === 'forward' ? anchorOffset : focusOffset,
                 });
@@ -48,7 +48,7 @@ export function selectionAPI(context: EditorContext) {
           } else {
             if (s.anchorNode?.parentElement) {
               nodes.push({
-                id: s.anchorNode?.parentElement.id,
+                id: s.anchorNode?.parentElement.id as NodeFragment['id'],
                 text: s.toString(),
                 offset: context.Selection.direction(s) === 'forward' ? s.anchorOffset : s.focusOffset,
               });

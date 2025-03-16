@@ -72,11 +72,11 @@
     <UiDropdownMenuContent side="top" align="center" class="my-3 flex w-max flex-row">
       <UiDropdownMenuSub>
         <UiDropdownMenuSubTrigger title="Turn into" />
-        <UiDropdownMenuSubContent align="center">
+        <UiDropdownMenuSubContent align="center" side="left">
           <UiDropdownMenuItem title="Paragraph" icon="lucide:text" />
-          <UiDropdownMenuItem title="Heading 1" icon="lucide:heading-1" />
-          <UiDropdownMenuItem title="Heading 2" icon="lucide:heading-2" />
-          <UiDropdownMenuItem title="Heading 3" icon="lucide:heading-3" />
+          <UiDropdownMenuItem title="Heading" icon="lucide:heading-1" />
+          <!-- <UiDropdownMenuItem title="Heading 2" icon="lucide:heading-2" />
+          <UiDropdownMenuItem title="Heading 3" icon="lucide:heading-3" /> -->
         </UiDropdownMenuSubContent>
       </UiDropdownMenuSub>
       <UiDropdownMenuSeparator class="-my-1 mx-1 h-auto w-px bg-border" />

@@ -2,8 +2,8 @@ import type { Block, BlockType, InlineNode, ParagraphBlock } from "~/types";
 
 export function blockAPI(context: EditorContext) {
   return {
-    find: (id?: string): BlockModel => context.model.block(id),
-    collect: (ids: string[]): BlockModel[] => ids.map((id) => context.model.block(id)),
+    find: (id?: Block['id']): BlockModel => context.model.block(id),
+    collect: (ids: Block['id'][]): BlockModel[] => ids.map((id) => context.model.block(id)),
     childrenInRange: (block: NonNullable<BlockModel>, start: number, end: number) => {
       const nodes = block.nodes();
       let currentOffset = 0;
@@ -124,7 +124,9 @@ export function blockAPI(context: EditorContext) {
         props: block.props,
       });
     },
-    // convert: () => {},
+    convert: (block: NonNullable<BlockModel>, into: BlockType) => {
+      console.log(block, into);
+    },
     // move: () => {},
     // insert: () => {},
   };

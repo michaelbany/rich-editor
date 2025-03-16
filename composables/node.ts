@@ -1,12 +1,12 @@
-import type { InlineNode, InlineStyle, NodeFragment } from "~/types";
+import type { Block, InlineNode, InlineStyle, NodeFragment } from "~/types";
 
 export function nodeAPI(context: EditorContext) {
   return {
     /** Find NodeModel by id */
-    find: (id?: string): NodeModel => context.model.node(id),
+    find: (id?: NodeFragment['id']): NodeModel => context.model.node(id),
 
     /** Collect multiple NodeModels by ids[] */
-    collect: (ids: string[]): NonNullable<NodeModel>[] =>
+    collect: (ids: NodeFragment['id'][]): NonNullable<NodeModel>[] =>
       ids.map((id) => context.model.node(id)).filter((node) => node !== undefined),
 
     /** Style selected NodeFragments */

@@ -45,17 +45,18 @@
             icon: "lucide:text",
           },
           {
-            title: "Heading 1",
+            title: "Heading",
             icon: "lucide:heading-1",
+            click: () => editor.block.convert(editor.block.find(block.id), "heading"),
           },
-          {
-            title: "Heading 2",
-            icon: "lucide:heading-2",
-          },
-          {
-            title: "Heading 3",
-            icon: "lucide:heading-3",
-          },
+          // {
+          //   title: "Heading 2",
+          //   icon: "lucide:heading-2",
+          // },
+          // {
+          //   title: "Heading 3",
+          //   icon: "lucide:heading-3",
+          // },
         ],
       },
       { divider: true },

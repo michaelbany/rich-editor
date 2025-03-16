@@ -15,6 +15,7 @@ export type EditorContent = Omit<Block, "id">[];
  * Block types currently supported by the editor.
  */
 export type BlockType = "paragraph" | "heading";
+type ExperimentalBlockType = "paragraph" | "heading-1" | "heading-2" | "heading-3"; // ...
 
 /**
  * General structure of a block in the document.
@@ -61,7 +62,7 @@ export type InlineStyle = "bold" | "italic" | "code" | "underline" | "strikethro
  */
 export type NodeFragment = Omit<InlineNode, InlineStyle> & {
   /** node DOM id */
-  id: string;
+  id: `${Block['id']}/${number}`;
   /** text offset from the start of the node */
   offset: number;
 };
@@ -110,7 +111,7 @@ export type EditorState<T extends AnyEditorState> = {
 export type SelectionState = {
   type: 'selection';
   /** a block id where the selection is happening */
-  block: string;
+  block: Block['id'];
   /** selection start offset (absolute offset in the block) */
   start: number;
   /** selection end offset (absolute offset in the block) */
@@ -125,9 +126,9 @@ export type SelectionState = {
 export type CursorState = {
   type: "cursor";
   /** a block id where the cursor is */
-  block: string;
+  block: Block['id'];
   /** a node id where the cursor is */
-  node: string;
+  node: NodeFragment['id'];
   /** local offset inside the node */
   offset: number;
   /** absolute offset in the block */
@@ -136,6 +137,7 @@ export type CursorState = {
 
 /**
  * State of the editor when nodes are selected.
+ * NOT USING!!
  */
 export type SelectedNodesState = {
     type: "selectedNodes";
@@ -149,6 +151,7 @@ export type SelectedNodesState = {
 
 /**
  * State of the editor when a block is focused.
+ * NOT USING!!
  */
 export type FocusedBlockState = {
     /** block id that is focused */
