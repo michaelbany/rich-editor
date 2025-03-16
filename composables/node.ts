@@ -110,7 +110,7 @@ export function nodeAPI(context: EditorContext) {
         } else {
           const prev: InlineNode = result[result.length - 1];
           // #note: It's necessary to add here more conditions when adding more styles
-          const sameStyle = prev.bold === node.bold && prev.italic === node.italic;
+          const sameStyle = prev.bold === node.bold && prev.italic === node.italic && prev.underline === node.underline && prev.strikethrough === node.strikethrough && prev.code === node.code;
 
           if (sameStyle) {
             // Merge nodes

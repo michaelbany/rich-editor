@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import type { Block, EditorState, SelectionState } from "~/types";
+  import type { Block, EditorState, InlineStyle, SelectionState } from "~/types";
 
   const props = defineProps<{
     selection: EditorState<SelectionState>;
@@ -57,6 +57,14 @@
       open.value = false;
     }
   }
+
+  function isSomeAlreadyStyled(style: InlineStyle) {
+    const selection = props.editor.state.selection.get();
+    if (!selection) return;
+
+    const nodes = props.editor.node.collect(selection.nodes.map((node) => node.id));
+    return nodes.some((node) => node.style.includes(style)) ? 'text-blue-500' : '';
+  }
 </script>
 <template>
   <UiDropdownMenu v-model:open="open" :modal="false">
@@ -72,11 +80,11 @@
         </UiDropdownMenuSubContent>
       </UiDropdownMenuSub>
       <UiDropdownMenuSeparator class="-my-1 mx-1 h-auto w-px bg-border" />
-      <UiDropdownMenuItem icon="lucide:bold" @select.prevent="editor.node.style('bold')" />
-      <UiDropdownMenuItem icon="lucide:italic" @select.prevent="editor.node.style('italic')" />
-      <UiDropdownMenuItem icon="lucide:underline" />
-      <UiDropdownMenuItem icon="lucide:strikethrough" />
-      <UiDropdownMenuItem icon="lucide:code" />
+      <UiDropdownMenuItem icon="lucide:bold" @select.prevent="editor.node.style('bold')" :class="isSomeAlreadyStyled('bold')" />
+      <UiDropdownMenuItem icon="lucide:italic" @select.prevent="editor.node.style('italic')" :class="isSomeAlreadyStyled('italic')" />
+      <UiDropdownMenuItem icon="lucide:underline" @select.press="editor.node.style('underline')" :class="isSomeAlreadyStyled('underline')" />
+      <UiDropdownMenuItem icon="lucide:strikethrough" @select.prevent="editor.node.style('strikethrough')" :class="isSomeAlreadyStyled('strikethrough')" />
+      <UiDropdownMenuItem icon="lucide:code" @select.prevent="editor.node.style('code')" :class="isSomeAlreadyStyled('code')" />
     </UiDropdownMenuContent>
   </UiDropdownMenu>
 </template>

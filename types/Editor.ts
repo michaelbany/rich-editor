@@ -53,7 +53,7 @@ export type InlineNode = {
 /**
  * All possible inline styles that can be set on a single text node.
  */
-export type InlineStyle = "bold" | "italic" | "code" | "link";
+export type InlineStyle = "bold" | "italic" | "code" | "underline" | "strikethrough";
 
 /**
  * Runtime node is used to identify a specific text node when editor is manipulating
