@@ -35,6 +35,10 @@ export function inputAPI(context: EditorContext) {
           e.preventDefault();
           context.Node.style("italic");
           break;
+        case "formatUnderline":
+          e.preventDefault();
+          context.Node.style("underline");
+          break;
         case "insertLineBreak":
         case "insertParagraph":
           e.preventDefault();
