@@ -124,8 +124,11 @@ export function blockAPI(context: EditorContext) {
         props: block.props,
       });
     },
-    convert: (block: NonNullable<BlockModel>, into: BlockType) => {
-      console.log(block, into);
+    convert: (block: BlockModel, into: BlockType) => {
+      if (!block) return;
+      
+      block.original().type = into;
+      block.original().props = blockSchema[into].props;
     },
     // move: () => {},
     // insert: () => {},

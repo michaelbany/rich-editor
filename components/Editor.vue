@@ -43,6 +43,7 @@
           {
             title: "Paragraph",
             icon: "lucide:text",
+            click: () => editor.block.convert(editor.block.find(block.id), "paragraph"),
           },
           {
             title: "Heading",
