@@ -73,8 +73,8 @@
       <UiDropdownMenuSub>
         <UiDropdownMenuSubTrigger title="Turn into" />
         <UiDropdownMenuSubContent align="center" side="left">
-          <UiDropdownMenuItem title="Paragraph" icon="lucide:text" />
-          <UiDropdownMenuItem title="Heading" icon="lucide:heading-1" />
+          <UiDropdownMenuItem title="Paragraph" icon="lucide:text" @select.prevent="editor.block.convert(editor.block.find(block.id), 'paragraph')" />
+          <UiDropdownMenuItem title="Heading" icon="lucide:heading-1" @select.prevent="editor.block.convert(editor.block.find(block.id), 'heading')" />
           <!-- <UiDropdownMenuItem title="Heading 2" icon="lucide:heading-2" />
           <UiDropdownMenuItem title="Heading 3" icon="lucide:heading-3" /> -->
         </UiDropdownMenuSubContent>
