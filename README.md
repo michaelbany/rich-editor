@@ -28,3 +28,4 @@ Own notion-like rich text editor based Vue.
 
 - **Bugs spotted**
     - [ ] When writing more than 1 character, cursor moves only after 1st character
+    - [ ] When jupming to next block with arrow up/down, cursor moves to same index in the next block as in the previous block, but it makes no sense if the next block has more than 1 line. It should then move to last line and there to the same index as in the previous block.
