@@ -14,34 +14,33 @@ export type EditorContent = Omit<Block, "id">[];
 /**
  * Block types currently supported by the editor.
  */
-export type BlockType = "paragraph" | "heading";
+export type BlockType = "paragraph" | "heading-1" | "heading-2" | "heading-3" | "heading-4" | "heading-5" | "heading-6" | "quote" | "bullet-list-item" | "check-list-item";
 
 /** EXPERIMENTAL */
-type ExperimentalBlockType = "paragraph" | "heading-1" | "heading-2" | "heading-3"; // ...
 
 /**
  * Přímé pojmenování akcí umožňuje jasné nastavení
  * 'práv' bloku, které mohou být provedeny.
- * 
+ *
  * Například tabulka může mít prevent 'split' což znamená,
  * že node může být styled celý, ale nemůže být rozdělen.
- * 
+ *
  * Ale pokud bychom přešli do situace, kdy tabulka je tvořena
  * z jednotlivých 'table-cell' bloků, můžeme dovolit 'split'
  * - při 'Enter' by se splitnul node a vytvořil se nový 'table-cell'
  * podle defaultního chování {chain: true}.
- * 
+ *
  * chain:boolean - by měl možná být preciznější v tom co má následovat
  * možná by měl vrátit cely například ParagraphBlock typ. Jako naprosto konkrétní
  * typ, který má následovat. A tím budeme naprosto precizní.
  * ListBlock<T, K> by mohl obsahovat proměnné parametry, které souvisí s typem
  * např. ListBlock<T = "list-item", index = 2> by mohl být typ, který má následovat
- * 
+ *
  * #idea 1: Vlastně se nemusím omezovat na totální strukturu, Každý komponent
  * by mohl mít vlastní způsob renderování (přímo ve vue komponentě) a nastavit
  * contentEditable až tam kde chce. Víme, že editor automaticky detekuje 'block'
  * pokud nebude block k dispozici nic se nestane
- * 
+ *
  * #idea 2: Kdyby InlineNode měl attr 'role' tak toto by možná mohlo vyřešit například
  * renderování `linku` nebo dalších inline elementů. A možná i table-cells.
  * Mohl bych předat přímo attr 'as' a to by vracelo h() funkci. Node by se mohl vždy
@@ -51,25 +50,25 @@ type ExperimentalBlockType = "paragraph" | "heading-1" | "heading-2" | "heading-
  * Akorát je tam problém se splitováním nodes, protože by se mi vytvořily například 2 <a> tagy
  * stejně tak 2 <td> tagy což už by bylo špatně.
  * #important: Notion vytváří duplicitní tagy pro <a> když se na část textu aplikuje styl. Funguje to přesně takto.
- * 
+ *
  * Kdyby node.as (tedy speciální node) složil jenom jako wrapper tak by se mohl ignorovat
- * při splitování. A tehdy by to fungovalo i u tabulek. 
+ * při splitování. A tehdy by to fungovalo i u tabulek.
  * Ale možná zbytečně komplexní.
- * 
+ *
  * #idea 3: Pravděpodobně kombinace obou přístupů bude nejlepší řešení
  * Existují tedy speciální nodes (link), ale pro table-cell je třeba to využít
- * jako block. 
+ * jako block.
  * Pokud by šel link nastavit jako 'inline' pomocí CSS i když by to byl block. Tak by mohly všechny být bloky.
  * Ale u inline Bloku si dávat pozor na chování bloků a kurzor pozice a tak dále. TESTOVAT HODNĚ
- * 
- * 
- * #todo: 
+ *
+ *
+ * #todo:
  *  - Zkus odstranit defaultní props a převeď heading na heading-{level}
  *  - Každý block typ by měl mít svůj vlastní Vue Component
  *  - Potom zkus jen skrz data vyrenderovat například list nebo table
  *  - a uvidíš jak se to bude chovat
  *  - cílem je pro toto udělat co nejméně změn v editoru (zatím neřešit BlockBehavors a Actions)
- * 
+ *
  * #note: Pokud bych každou část zanořených bloků definoval jako samostatný block
  * např. "list-item"| "table-cell"| "table-row" měl bych mít na každý tento block
  * vlastní vue komponent, kde bude definované že každý table-cell se renderuje jako td například
@@ -88,12 +87,24 @@ type ExperimentalBlockBehaviors = {
   /** Prevent specific actions on the block */
   prevent: ExperimentalActions[];
   /** Define custom wrapper for the block */
-  container: string; // HTML tag (e.g. "ul")
+  wrapper: string; // HTML tag (e.g. "ul")
   /** Next block should be of the same type */
   chain: boolean;
   /** Level indicates the hierarchy of the block */
   level: number;
-}
+};
+
+export type ExperimentalBlockProps = {
+  id: Block["id"];
+  contenteditable: boolean;
+  class?: any;
+};
+
+export type ExperimentalBlockEmits = {
+  dragstart: () => void;
+  drop: () => void;
+  dragover: () => void;
+};
 
 /**
  * General structure of a block in the document.
@@ -107,7 +118,7 @@ export type Block<T = Record<string, any>> = {
   /** text content of the block */
   nodes: InlineNode[];
   /** additional properties for the block */
-  props: T;
+  // props: T;
 };
 
 /**
@@ -140,7 +151,7 @@ export type InlineStyle = "bold" | "italic" | "code" | "underline" | "strikethro
  */
 export type NodeFragment = Omit<InlineNode, InlineStyle> & {
   /** node DOM id */
-  id: `${Block['id']}/${number}`;
+  id: `${Block["id"]}/${number}`;
   /** text offset from the start of the node */
   offset: number;
 };
@@ -150,7 +161,7 @@ export type NodeFragment = Omit<InlineNode, InlineStyle> & {
  */
 export type AnyEditorState = BlockState | ContentState;
 
-export type EditorEventStateType = 'selection' | 'cursor';
+export type EditorEventStateType = "selection" | "cursor";
 
 /**
  * Union of all possible block states.
@@ -162,34 +173,36 @@ type ContentState = any;
 type EditorStateMap = {
   selection: SelectionState;
   cursor: CursorState;
-}
+};
 
 export type EditorStateSchema = {
   [key in EditorEventStateType]: {
     get: () => EditorState<EditorStateMap[key]>;
     set: (state: EditorState<EditorStateMap[key]>) => void;
     clear: () => void;
-  }
-}
+  };
+};
 
 export type EditorStateHolder = {
   [key in EditorEventStateType]: EditorState<EditorStateMap[key]>;
-}
+};
 
 /**
  * Type of the editor state. Needs to be extended with the specific editor state type.
  */
-export type EditorState<T extends AnyEditorState> = {
-  type: EditorEventStateType;
-} & T | null;
+export type EditorState<T extends AnyEditorState> =
+  | ({
+      type: EditorEventStateType;
+    } & T)
+  | null;
 
 /**
  * State of the editor when a selection is active inside a block.
  */
 export type SelectionState = {
-  type: 'selection';
+  type: "selection";
   /** a block id where the selection is happening */
-  block: Block['id'];
+  block: Block["id"];
   /** selection start offset (absolute offset in the block) */
   start: number;
   /** selection end offset (absolute offset in the block) */
@@ -204,11 +217,11 @@ export type SelectionState = {
 export type CursorState = {
   type: "cursor";
   /** a block id where the cursor is */
-  block: Block['id'];
+  block: Block["id"];
   /** a node id where the cursor is */
-  node: NodeFragment['id'];
+  node: NodeFragment["id"];
   /** local offset inside the node */
   offset: number;
   /** absolute offset in the block */
-  absolute: {start: number, end: number};
+  absolute: { start: number; end: number };
 };

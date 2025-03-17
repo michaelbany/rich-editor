@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import type { Block, EditorState, InlineStyle, SelectionState } from "~/types";
+  import type { Block, BlockType, EditorState, InlineStyle, SelectionState } from "~/types";
 
   const props = defineProps<{
     selection: EditorState<SelectionState>;
@@ -14,17 +14,20 @@
 
   const { y: mouseY } = useMouse();
 
-  watch(() => mouseY.value, (oldValue, newValue) => {
-    if (selectionIsComplete.value && !open.value) {
-      if (newValue.valueOf() - oldValue.valueOf() > 1) {
-        handleOpen();
-      }
-    } else if (open.value) {
-      if (oldValue.valueOf() - newValue.valueOf() > 10) {
-        open.value = false;
+  watch(
+    () => mouseY.value,
+    (oldValue, newValue) => {
+      if (selectionIsComplete.value && !open.value) {
+        if (newValue.valueOf() - oldValue.valueOf() > 1) {
+          handleOpen();
+        }
+      } else if (open.value) {
+        if (oldValue.valueOf() - newValue.valueOf() > 10) {
+          open.value = false;
+        }
       }
     }
-  })
+  );
 
   watchDebounced(
     () => props.selection,
@@ -64,7 +67,7 @@
     if (!selection) return;
 
     const nodes = props.editor.node.collect(selection.nodes.map((node) => node.id));
-    return nodes.some((node) => node.style.includes(style)) ? 'text-blue-500' : '';
+    return nodes.some((node) => node.style.includes(style)) ? "text-blue-500" : "";
   }
 </script>
 <template>
@@ -74,18 +77,44 @@
       <UiDropdownMenuSub>
         <UiDropdownMenuSubTrigger title="Turn into" />
         <UiDropdownMenuSubContent align="center" side="left">
-          <UiDropdownMenuItem title="Paragraph" icon="lucide:text" @select.prevent="editor.block.convert(editor.block.find(block.id), 'paragraph')" />
-          <UiDropdownMenuItem title="Heading" icon="lucide:heading-1" @select.prevent="editor.block.convert(editor.block.find(block.id), 'heading')" />
-          <!-- <UiDropdownMenuItem title="Heading 2" icon="lucide:heading-2" />
-          <UiDropdownMenuItem title="Heading 3" icon="lucide:heading-3" /> -->
+          <UiDropdownMenuItem
+            v-for="turntype in Object.entries(blockSchema).map(([key, value]) => ({
+              title: value.name,
+              icon: value.icon,
+              click: () => editor.block.convert(editor.block.find(block.id), key as BlockType),
+            }))"
+            :title="turntype.title"
+            :icon="turntype.icon"
+            @select.prevent="turntype.click"
+          />
         </UiDropdownMenuSubContent>
       </UiDropdownMenuSub>
       <UiDropdownMenuSeparator class="-my-1 mx-1 h-auto w-px bg-border" />
-      <UiDropdownMenuItem icon="lucide:bold" @select.prevent="editor.node.style('bold')" :class="isSomeAlreadyStyled('bold')" />
-      <UiDropdownMenuItem icon="lucide:italic" @select.prevent="editor.node.style('italic')" :class="isSomeAlreadyStyled('italic')" />
-      <UiDropdownMenuItem icon="lucide:underline" @select.press="editor.node.style('underline')" :class="isSomeAlreadyStyled('underline')" />
-      <UiDropdownMenuItem icon="lucide:strikethrough" @select.prevent="editor.node.style('strikethrough')" :class="isSomeAlreadyStyled('strikethrough')" />
-      <UiDropdownMenuItem icon="lucide:code" @select.prevent="editor.node.style('code')" :class="isSomeAlreadyStyled('code')" />
+      <UiDropdownMenuItem
+        icon="lucide:bold"
+        @select.prevent="editor.node.style('bold')"
+        :class="isSomeAlreadyStyled('bold')"
+      />
+      <UiDropdownMenuItem
+        icon="lucide:italic"
+        @select.prevent="editor.node.style('italic')"
+        :class="isSomeAlreadyStyled('italic')"
+      />
+      <UiDropdownMenuItem
+        icon="lucide:underline"
+        @select.press="editor.node.style('underline')"
+        :class="isSomeAlreadyStyled('underline')"
+      />
+      <UiDropdownMenuItem
+        icon="lucide:strikethrough"
+        @select.prevent="editor.node.style('strikethrough')"
+        :class="isSomeAlreadyStyled('strikethrough')"
+      />
+      <UiDropdownMenuItem
+        icon="lucide:code"
+        @select.prevent="editor.node.style('code')"
+        :class="isSomeAlreadyStyled('code')"
+      />
     </UiDropdownMenuContent>
   </UiDropdownMenu>
 </template>

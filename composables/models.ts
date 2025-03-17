@@ -22,7 +22,7 @@ function createBlock(context: EditorContext, id?: Block['id']) {
     id: id,
     type: self.type,
     index: context.document.blocks.findIndex((block) => block.id === id),
-    props: self.props,
+    // props: self.props,
     /** @returns Block */
     original(): Block {
       return self;

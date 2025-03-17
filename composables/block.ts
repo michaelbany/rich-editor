@@ -44,7 +44,7 @@ export function blockAPI(context: EditorContext) {
         id: crypto.randomUUID(),
         type: attr?.type ?? "paragraph",
         nodes: attr?.nodes?.length ? attr.nodes : [{ text: "" }],
-        props: attr?.props ?? {},
+        // props: attr?.props ?? {},
       };
 
       context.document.blocks.splice(index, 0, block);
@@ -115,20 +115,20 @@ export function blockAPI(context: EditorContext) {
       context.Block.create(block.index, {
         nodes: before,
         type: block.type,
-        props: block.props,
+        // props: block.props,
       });
 
       context.Block.create(block.index + 1, {
         nodes: after,
         type: block.type,
-        props: block.props,
+        // props: block.props,
       });
     },
     convert: (block: BlockModel, into: BlockType) => {
       if (!block) return;
       
       block.original().type = into;
-      block.original().props = blockSchema[into].props;
+      // copy block.behaviors
     },
     // move: () => {},
     // insert: () => {},

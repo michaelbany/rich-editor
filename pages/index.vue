@@ -7,13 +7,36 @@
 
   const content: EditorContent = [
     {
-      type: "heading",
+      type: "heading-2",
       nodes: [
         {
           text: "Heading 2",
         },
       ],
-      props: { level: 2 },
+    },
+    {
+      type: "check-list-item",
+      nodes: [
+        {
+          text: "This is a list item.",
+        },
+      ]
+    },
+    {
+      type: "bullet-list-item",
+      nodes: [
+        {
+          text: "This is a 2 list item.",
+        },
+      ]
+    },
+    {
+      type: "quote",
+      nodes: [
+        {
+          text: "This is a callout.",
+        }
+      ]
     },
     {
       type: "paragraph",
@@ -36,7 +59,6 @@
           text: " text.",
         },
       ],
-      props: {},
     },
     {
       type: "paragraph",
@@ -45,7 +67,6 @@
           text: "",
         }
       ],
-      props: {},
     },
     {
       type: "paragraph",
@@ -54,8 +75,7 @@
           text: "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Quisque tincidunt scelerisque libero. Etiam posuere lacus quis dolor. Etiam commodo dui eget wisi. Integer pellentesque quam vel velit. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos hymenaeos. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Fusce dui leo, imperdiet in, aliquam sit amet, feugiat eu, orci. Mauris elementum mauris vitae tortor. Vivamus luctus egestas leo. Sed elit dui, pellentesque a, faucibus vel, interdum nec, diam. Donec iaculis gravida nulla. Nullam justo enim, consectetuer nec, ullamcorper ac, vestibulum in, elit. In rutrum. Sed ac dolor sit amet purus malesuada congue. Aliquam erat volutpat. Praesent in mauris eu tortor porttitor accumsan."
         }
       ],
-      props: {}
-    }
+    },
   ];
 
   // const editor = useEditor(content)
