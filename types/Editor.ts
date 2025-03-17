@@ -79,6 +79,15 @@ export type BlockType = "test"| "paragraph" | "heading-1" | "heading-2" | "headi
  * Default bude například `comment`, který budou mít všechny bloky.
  * 
  * #note 3: Bloky by měly být hierarchicky zanořené. Aby mohl existovat parent block
+ * 
+ * #note 4: Bloky i InlineNodes by měly mít typy.
+ * Block by měl fungovat jako plugin (rozšíření funkcionality) nebo uprava funkcionality.
+ * A to proto, aby bylo jednoduché přidat logiku pro nový blok.
+ * Například Block<Singleton> - defaultní blok, který používáme pro všechny
+ * Potom by mohl být například Block pro hierarchické bloky
+ * 
+ * Veškeré chování by se mělo dát nakonfikurovat pomocí BlockBehaviors.
+ * Udělat základní hooks a každý nový typ bloku by pouze nastavil chování na ten hook.
  */
 
 /**
