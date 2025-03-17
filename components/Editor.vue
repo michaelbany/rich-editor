@@ -49,12 +49,14 @@
       {
         title: "Move Up",
         icon: "lucide:arrow-up",
-        disabled: true,
+        disabled: editor.data.blocks.indexOf(block) === 0,
+        click: () => editor.block.move(editor.block.find(block.id) as NonNullable<BlockModel>, -1),
       },
       {
         title: "Move Down",
         icon: "lucide:arrow-down",
-        disabled: true,
+        disabled: editor.data.blocks.indexOf(block) === editor.data.blocks.length - 1,
+        click: () => editor.block.move(editor.block.find(block.id) as NonNullable<BlockModel>, 1),
       },
       { divider: true },
       {

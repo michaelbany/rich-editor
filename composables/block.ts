@@ -136,7 +136,18 @@ export function blockAPI(context: EditorContext) {
         type: block.type,
       });
     },
-    // move: () => {},
+    move: (block: NonNullable<BlockModel>, direction: number) => {
+      const index = block.index;
+      const newIndex = index + direction;
+
+      if (newIndex < 0 || newIndex >= context.document.blocks.length) return;
+
+      const blocks = context.document.blocks;
+      blocks.splice(index, 1);
+      blocks.splice(newIndex, 0, block.original());
+
+      context.Cursor.move(block, 0);
+    },
     // insert: () => {},
   };
 }
