@@ -1,12 +1,13 @@
 <script setup lang="ts">
-  import type { EditorAnyBlock, EditorHeadingBlock } from "~/types";
+import type { Block, HeadingBlock } from '~/types';
+
 
   const props = defineProps<{
-    block: EditorAnyBlock;
+    block: Block;
   }>();
 
   function headingComponent() {
-    const level = (props.block as EditorHeadingBlock).props?.level;
+    const level = (props.block as HeadingBlock).props?.level;
     let component = "h1";
     let style = {};
 
@@ -48,7 +49,7 @@
   });
 </script>
 <template>
-  <component :is="component" contenteditable class="focus:outline-none" @input="$emit('input')">
+  <component :is="component" contenteditable @dragstart.prevent @dragover.prevent @drop.prevent class="focus:outline-none" @input="$emit('input')">
     <slot />
   </component>
 </template>

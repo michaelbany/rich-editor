@@ -24,6 +24,7 @@ Own notion-like rich text editor based Vue.
         - [ ] If there is a text after cursor, split text-node and move to new block (Enter)
         - [ ] Select and do action (delete or write)
         - [ ] Deleting multiple words with backspace + ctrl (meta) (deleteSoftLineBackward)
+        - [ ] `DeleteByDrag` & `insertFromDrop` methods (now prevented)
 
 
 - **Bugs spotted**
