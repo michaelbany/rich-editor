@@ -76,6 +76,23 @@
         }
       ],
     },
+    {
+      type: "test",
+      nodes: [
+        {
+          text: "Test 1",
+        },
+        {
+          text: "Test 2",
+        },
+        {
+          text: "Test 3",
+        },
+        {
+          text: "Test 4",
+        }
+      ]
+    }
   ];
 
   // const editor = useEditor(content)

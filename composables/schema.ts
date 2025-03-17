@@ -8,9 +8,16 @@ import Heading3 from "~/components/EditorBlock/Heading3.vue"
 import Heading4 from "~/components/EditorBlock/Heading4.vue"
 import Heading5 from "~/components/EditorBlock/Heading5.vue"
 import Heading6 from "~/components/EditorBlock/Heading6.vue"
+import Test from "~/components/EditorBlock/Test.vue"
 import type { BlockType } from "~/types"
 
 export const blockSchema:Record<BlockType, any> = {
+    'test': {
+        component: Test,
+        placeholder: "This is a test...",
+        name: "Test",
+        icon: "lucide:bug-play",
+    },
     'paragraph': {
         component: Paragraph,
         placeholder: "Write, press '/' for command...",

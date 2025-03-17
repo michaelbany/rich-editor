@@ -14,7 +14,7 @@ export type EditorContent = Omit<Block, "id">[];
 /**
  * Block types currently supported by the editor.
  */
-export type BlockType = "paragraph" | "heading-1" | "heading-2" | "heading-3" | "heading-4" | "heading-5" | "heading-6" | "quote" | "bullet-list-item" | "check-list-item";
+export type BlockType = "test"| "paragraph" | "heading-1" | "heading-2" | "heading-3" | "heading-4" | "heading-5" | "heading-6" | "quote" | "bullet-list-item" | "check-list-item";
 
 /** EXPERIMENTAL */
 

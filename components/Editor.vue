@@ -15,7 +15,7 @@
     editor.destroy();
   });
 
-  provide("editor", editor);
+  provide<typeof editor>("editor", editor);
 
   function createItemsForBlock(block: Block) {
     return [
