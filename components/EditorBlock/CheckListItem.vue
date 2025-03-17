@@ -7,8 +7,12 @@
   const forwarted = useForwardPropsEmits(props, emit);
 </script>
 <template>
-  <Icon name="lucide:check" />
-  <div v-bind="forwarted" class="mb-[0.5em]">
-    <slot />
+  <div class="mb-[0.5em] flex w-full items-center gap-2">
+    <div class="h-4 w-4">
+      <Icon name="lucide:check" class="align-top" />
+    </div>
+    <div v-bind="forwarted">
+      <slot />
+    </div>
   </div>
 </template>

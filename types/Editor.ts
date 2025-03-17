@@ -73,6 +73,12 @@ export type BlockType = "paragraph" | "heading-1" | "heading-2" | "heading-3" | 
  * např. "list-item"| "table-cell"| "table-row" měl bych mít na každý tento block
  * vlastní vue komponent, kde bude definované že každý table-cell se renderuje jako td například
  * Tímto způsobem by se dokument mohl generovat trochu automaticky, protože by se o tom postaralo HTML samotné
+ * 
+ * #note 2: type Block musí mít attribute `data` který bude obsahovat přiřazené data pro blok
+ * Tento attribute mohou používat i konkrétní typy bloků pro svoje props
+ * Default bude například `comment`, který budou mít všechny bloky.
+ * 
+ * #note 3: Bloky by měly být hierarchicky zanořené. Aby mohl existovat parent block
  */
 
 /**
