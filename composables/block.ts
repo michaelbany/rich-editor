@@ -61,13 +61,13 @@ export function blockAPI(context: EditorContext) {
      */
     remove: (block: NonNullable<BlockModel>, force: boolean = false): boolean => {
       const index = block.index;
-      const previousBlock = block.previous();
+      const existingSibling = block.previous() ?? block.next();
 
-      if (!previousBlock && !force) return false;
+      if (!existingSibling && !force) return false;
 
       context.document.blocks.splice(index, 1);
 
-      if (previousBlock) context.Cursor.move(previousBlock, previousBlock.text().length);
+      if (existingSibling) context.Cursor.move(existingSibling, existingSibling.text().length);
 
       return true;
     },
@@ -129,6 +129,12 @@ export function blockAPI(context: EditorContext) {
       
       block.original().type = into;
       // copy block.behaviors
+    },
+    clone: (block: NonNullable<BlockModel>) => {
+      context.Block.create(block.index + 1, {
+        nodes: block.nodes().map((node) => node.original()),
+        type: block.type,
+      });
     },
     // move: () => {},
     // insert: () => {},

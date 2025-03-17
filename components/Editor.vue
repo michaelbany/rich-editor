@@ -28,12 +28,13 @@
       {
         title: "Delete",
         icon: "lucide:trash",
-        disabled: true,
+        disabled: editor.data.blocks.length === 1,
+        click: () => editor.block.remove(editor.block.find(block.id) as NonNullable<BlockModel>),
       },
       {
         title: "Duplicate",
         icon: "lucide:copy",
-        disabled: true,
+        click: () => editor.block.clone(editor.block.find(block.id) as NonNullable<BlockModel>),
       },
       {
         title: "Turn into",
