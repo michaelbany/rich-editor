@@ -42,7 +42,8 @@
     const selection = window.getSelection();
     if (!selection) return;
 
-    const range = selection.getRangeAt(0);
+    const range = selection?.getRangeAt(0);
+    if (!range) return;
     const rect = range.getBoundingClientRect();
 
     x.value = rect.left + rect.width / 2 + window.scrollX;
